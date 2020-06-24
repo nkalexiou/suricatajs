@@ -20,7 +20,7 @@ Run manually or schedule the command
 python run.py
 ````
 
-###Functionality
+### Functionality
 
 Surikatajs uses a sqlite database and is written in python. It works by parsing urls defined in targets.txt, for javascript references. When a scipr is found a checksum is calculated and inserted in the database if no previous reference for the script exists in the database. 
 
