@@ -1,4 +1,4 @@
-# surikatajs
+# suricatajs
 
 Monitor javascript files for unauthorized changes and generate alerts when they are detected. 
 
@@ -22,6 +22,6 @@ python run.py
 
 ### Functionality
 
-Surikatajs uses a sqlite database and is written in python. It works by parsing urls defined in targets.txt, for javascript references. When a scipr is found a checksum is calculated and inserted in the database if no previous reference for the script exists in the database. 
+Suricatajs uses a sqlite database and is written in python. It works by parsing urls defined in targets.txt, for javascript references. When a scipr is found a checksum is calculated and inserted in the database if no previous reference for the script exists in the database. 
 
 If the javascript is already monitored (or else exists in the database) then a new checksum is created and compared with the stored one. In case of missmatch an alert is created and inserted in the database.
