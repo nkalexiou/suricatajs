@@ -1,6 +1,8 @@
 # suricatajs
 
-Monitor javascript files for unauthorized changes and generate alerts when they are detected. 
+Suricatajs is a python program that can be used to monitor webpages, in order to detect unauthorised changes in production javascript. In a commonly used technique, hacking groups alter the code of javascript running on pages, such as those handling credit card or personal information, in order to steal sensitive information. 
+
+By taking snapshots of javascript in scope using cryptographic hashes, Suricatajs can detect unauthorized changes and provide an early warning to defenders.
 
 ### Installation
 
@@ -22,6 +24,8 @@ python run.py
 
 ### Functionality
 
-Suricatajs uses a sqlite database and is written in python. It works by parsing urls defined in targets.txt, for javascript references. When a scipr is found a checksum is calculated and inserted in the database if no previous reference for the script exists in the database. 
+Suricatajs uses an sqlite database and monitors all urls defined in targets.txt. The checksum of each javascript file running on these webpages is generated and saved in the database. With each run a new checksum is generated and compared with the one existing in the database. If these do not match, an alert is created and stored in the database. 
 
-If the javascript is already monitored (or else exists in the database) then a new checksum is created and compared with the stored one. In case of missmatch an alert is created and inserted in the database.
+### Extensions and Discussion
+
+The current code is intended to be used as a template and can be greatly extended and customised. As examples of improvements, alerts can be posted to slack channels, new checksums can be set as "accepted" and replace old checksums in the database, ignore-lists of javascript can be created etc.
