@@ -36,12 +36,16 @@ with open('targets.txt','r') as targets:
         script_list = soup2.find_all('script')
         # Get src link for each javascript
         for script in script_list:
-            if 'src' in str(script):
-                script_url = urljoin(targeturl,script['src'])
-                # Add all scipts to set and map javascript to webpage
-                javascript_set.add(script_url)
-                c.execute('INSERT INTO jsmap SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM jsmap WHERE url=? AND javascript=?)', (targeturl, script_url, targeturl, script_url))
-                conn.commit()
+            try:
+                if 'src' in str(script):
+                    print(script)
+                    script_url = urljoin(targeturl,script['src'])
+                    # Add all scipts to set and map javascript to webpage
+                    javascript_set.add(script_url)
+                    c.execute('INSERT INTO jsmap SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM jsmap WHERE url=? AND javascript=?)', (targeturl, script_url, targeturl, script_url))
+                    conn.commit()
+            except KeyError:
+                print("Error reading script source")
 
 # For each of the detected scripts
 for js in javascript_set:
