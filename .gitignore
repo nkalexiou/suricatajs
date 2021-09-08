@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#virtual environment
+suricata_venv/
+
+#others
+.DS_Store
