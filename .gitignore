@@ -133,3 +133,5 @@ suricata_venv/
 
 #others
 .DS_Store
+surikatajs.db
+suricatajs.db
