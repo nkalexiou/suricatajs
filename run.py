@@ -20,7 +20,7 @@ def check():
     http_proxy = ''
 
     if config['CONFIG']['http_proxy']!='' and config['CONFIG']['port']!='':
-        http_proxy = config['PROXY']['http_proxy']+config['PROXY']['port']
+        http_proxy = config['CONFIG']['http_proxy']+config['CONFIG']['port']
 
     conn = sqlite3.connect('surikatajs.db')
     c = conn.cursor()
