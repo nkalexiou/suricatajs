@@ -5,6 +5,9 @@ import sys
 from run import check
 
 def main(secdelay):
+	"""
+	calls check functionality from run.py and adds a delay in sec
+	"""
 	while True:
 		check()
 		time.sleep(secdelay)
