@@ -13,7 +13,7 @@ def main(secdelay):
 		time.sleep(secdelay)
 
 if __name__ == "__main__":
-	if (sys.argv[1]):
+	if len(sys.argv)>1:
 		try:
 			delay=int(sys.argv[1])
 			main(delay)
