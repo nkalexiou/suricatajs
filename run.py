@@ -9,11 +9,11 @@ import configparser
 import requests
 from bs4 import BeautifulSoup
 
-"""
-Main functionality
-Scans urls, finds javascript, calculates checksums, creates alerts
-"""
 def check():
+    """
+    Main functionality
+    Scans urls, finds javascript, calculates checksums, creates alerts
+    """
 
     # read config
     config = configparser.ConfigParser()
