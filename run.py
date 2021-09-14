@@ -32,7 +32,7 @@ def check():
         for targeturl in targets:
             # Find all scripts in webpage
             html_resp = requests.get(targeturl).text
-            soup2 = BeautifulSoup(html_resp,features='lxml')
+            soup2 = BeautifulSoup(html_resp, features='lxml')
             script_list = soup2.find_all('script')
             # Get src link for each javascript
             for script in script_list:
@@ -54,7 +54,7 @@ def check():
         new_checksum = hashlib.sha256(jssource.encode(encoding='utf-8')).hexdigest()
 
         # Check if checksum alrady exists in database
-        stored_checksum_cur = c_cursor.execute('SELECT checksum FROM jschecksum WHERE javascript=?',(j_script,)).fetchone()
+        stored_checksum_cur = c_cursor.execute('SELECT checksum FROM jschecksum WHERE javascript=?', (j_script,)).fetchone()
 
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         # If checksum already exists then compare with new checksum
@@ -70,12 +70,12 @@ def check():
                 print("A new checksum was detected: "+new_checksum+" that doesn't match the value stored in the database.")
                 print("Creating alert for : "+j_script)
                 print()
-                c_cursor.execute('INSERT INTO alerts VALUES (?,?,?,?)', (j_script,stored_checksum,new_checksum,timestamp))
+                c_cursor.execute('INSERT INTO alerts VALUES (?,?,?,?)', (j_script,stored_checksum, new_checksum, timestamp))
                 conn.commit()
         # If checksum does not exist in database insert a new entry
         else:
             print("checksum insert for :"+j_script)
-            c_cursor.execute('INSERT INTO jschecksum VALUES (?,?,?)',(str(j_script), new_checksum,timestamp))
+            c_cursor.execute('INSERT INTO jschecksum VALUES (?,?,?)', (str(j_script), new_checksum, timestamp))
             conn.commit()
 
     conn.close()
