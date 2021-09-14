@@ -1,17 +1,13 @@
 """
 Main suricatejs file. Contains all scanning login in check() function
 """
-import re
-import os
 import sqlite3
 import hashlib
 from urllib.parse import urljoin
-import subprocess
 import datetime
 import configparser
 import requests
 from bs4 import BeautifulSoup
-from requests.auth import HTTPBasicAuth
 
 """
 Main functionality
@@ -22,11 +18,6 @@ def check():
     # read config
     config = configparser.ConfigParser()
     config.read('./config/properties.ini')
-
-    http_proxy = ''
-
-    if config['CONFIG']['http_proxy']!='' and config['CONFIG']['port']!='':
-        http_proxy = config['CONFIG']['http_proxy']+config['CONFIG']['port']
 
     conn = sqlite3.connect('surikatajs.db')
     c_cursor = conn.cursor()
