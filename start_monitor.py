@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import time, sys
+import time
+import sys
 from run import check
 
 def main(secdelay):
