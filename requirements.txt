@@ -27,7 +27,7 @@ Jinja2==3.0.1
 lxml==4.9.1
 MarkupSafe==2.0.1
 matplotlib-inline==0.1.2
-numpy==1.20.3
+numpy==1.22.0
 parso==0.8.2
 pexpect==4.8.0
 pickleshare==0.7.5
