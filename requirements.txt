@@ -1,5 +1,5 @@
 appnope==0.1.2
-asgiref==3.4.1
+asgiref==3.6.0
 backcall==0.2.0
 backports.entry-points-selectable==1.1.0
 base58==2.1.0
