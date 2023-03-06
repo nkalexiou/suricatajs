@@ -3,7 +3,7 @@ asgiref==3.6.0
 backcall==0.2.0
 backports.entry-points-selectable==1.1.0
 base58==2.1.0
-beautifulsoup4==4.10.0
+beautifulsoup4==4.11.2
 bs4==0.0.1
 certifi==2022.12.7
 charset-normalizer==2.0.4
@@ -11,7 +11,7 @@ Click==7.0
 colorama==0.4.4
 decorator==5.1.1
 distlib==0.3.2
-Django==3.2.16
+Django==4.1.7
 dpkt==1.9.8
 filelock==3.0.12
 Flask==1.1.1
@@ -19,7 +19,7 @@ Flask-HTTPAuth==3.3.0
 Flask-JWT-Extended==3.24.1
 Flask-Session==0.3.1
 idna==3.2
-ipython==7.31.1
+ipython==8.11.0
 ipython-genutils==0.2.0
 itsdangerous==1.1.0
 jedi==0.18.2
@@ -28,7 +28,7 @@ lxml==4.9.1
 MarkupSafe==2.0.1
 matplotlib-inline==0.1.2
 numpy==1.22.0
-parso==0.8.2
+parso==0.8.3
 pexpect==4.8.0
 pickleshare==0.7.5
 platformdirs==2.6.2
@@ -36,7 +36,7 @@ prompt-toolkit==3.0.18
 ptyprocess==0.7.0
 pycipher==0.5.2
 Pygments==2.14.0
-PyJWT==2.4.0
+PyJWT==2.6.0
 pytz==2021.1
 requests==2.26.0
 scapy==2.4.5
@@ -47,4 +47,4 @@ traitlets==5.8.1
 urllib3==1.26.6
 virtualenv==20.7.2
 wcwidth==0.2.5
-Werkzeug==0.16.0
+Werkzeug==2.2.3
