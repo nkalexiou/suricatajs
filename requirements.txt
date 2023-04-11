@@ -13,7 +13,7 @@ decorator==5.1.1
 distlib==0.3.6
 Django==4.1.7
 dpkt==1.9.8
-filelock==3.0.12
+filelock==3.11.0
 Flask==1.1.1
 Flask-HTTPAuth==3.3.0
 Flask-JWT-Extended==3.24.1
