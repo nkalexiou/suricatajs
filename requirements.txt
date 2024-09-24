@@ -35,7 +35,7 @@ platformdirs==3.2.0
 prompt-toolkit==3.0.18
 ptyprocess==0.7.0
 pycipher==0.5.2
-Pygments==2.14.0
+Pygments==2.18.0
 PyJWT==2.6.0
 pytz==2023.3
 requests==2.26.0
