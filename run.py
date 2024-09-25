@@ -5,9 +5,68 @@ import sqlite3
 import hashlib
 from urllib.parse import urljoin
 import datetime
+from logging.handlers import TimedRotatingFileHandler
 import configparser
 import requests
+import logging
 from bs4 import BeautifulSoup
+import os
+
+conn = sqlite3.connect('surikatajs.db')
+c_cursor = conn.cursor()
+
+logger = logging.getLogger("my_logger")
+
+def configure_logger(log_file):
+    # Create a logger
+    logger.setLevel(logging.DEBUG)
+
+    # Create a formatter
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+    # Create a file handler and set the formatter
+    file_handler = TimedRotatingFileHandler(log_file, when="midnight", interval=1, backupCount=7)
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+
+    # Add the file handler to the logger
+    logger.addHandler(file_handler)
+
+    return logger
+
+
+def db_initiate():
+    logger.info('Creating database tables')
+
+    # Create the 'jsmap' table to map URLs to JavaScript code
+    c_cursor.execute('''
+        CREATE TABLE IF NOT EXISTS jsmap (
+            url TEXT,
+            javascript TEXT
+        )
+    ''')
+
+    # Create the 'jschecksum' table to store JavaScript checksums and their dates
+    c_cursor.execute('''
+        CREATE TABLE IF NOT EXISTS jschecksum (
+            javascript TEXT,
+            checksum TEXT,
+            date TEXT
+        )
+    ''')
+
+    # Create the 'alerts' table to store alerts related to checksum changes
+    c_cursor.execute('''
+        CREATE TABLE IF NOT EXISTS alerts (
+            javascript TEXT,
+            stored_checksum TEXT,
+            new_checksum TEXT,
+            date TEXT
+        )
+    ''')
+
+    logger.info('Database tables created successfully')
+
 
 def check():
     """
@@ -19,17 +78,12 @@ def check():
     config = configparser.ConfigParser()
     config.read('./config/properties.ini')
 
-    conn = sqlite3.connect('surikatajs.db')
-    c_cursor = conn.cursor()
-
-    c_cursor.execute('CREATE TABLE IF NOT EXISTS jsmap (url text, javascript text)')
-    c_cursor.execute('CREATE TABLE IF NOT EXISTS jschecksum (javascript text, checksum text, date text)')
-    c_cursor.execute('CREATE TABLE IF NOT EXISTS alerts (javascript text, stored_checksum text, new_checksum, date text)')
-
+    db_initiate()
     javascript_set = set()
 
     with open('targets.txt','r') as targets:
         for targeturl in targets:
+            logger.info(f'Suricatajs working on {targeturl}')
             # Find all scripts in webpage
             html_resp = requests.get(targeturl).text
             soup2 = BeautifulSoup(html_resp, features='lxml')
@@ -38,7 +92,7 @@ def check():
             for script in script_list:
                 try:
                     if 'src' in str(script):
-                        print(script)
+                        logger.info(script)
                         script_url = urljoin(targeturl,script['src'])
                         # Add all scipts to set and map javascript to webpage
                         javascript_set.add(script_url)
@@ -81,4 +135,7 @@ def check():
     conn.close()
 
 if __name__ == "__main__":
+
+    db_initiate()
+    configure_logger(os.path.expanduser('app.log'))
     check()
