@@ -11,6 +11,7 @@ import requests
 import logging
 from bs4 import BeautifulSoup
 import os
+from suricatajs_obj import SuricataJSObject as SuricataJSObject
 
 conn = sqlite3.connect('surikatajs.db')
 c_cursor = conn.cursor()
@@ -71,51 +72,48 @@ def compare(stored_checksum, new_checksum):
 def check():
     """
     Main functionality
-    Scans urls, finds javascript, calculates checksums, creates alerts
+    Scans urls, finds javascript, calculates checksums, creates alerts.
     """
 
     # read config
     config = configparser.ConfigParser()
     config.read('./config/properties.ini')
 
-    javascript_set = set()
-
     with open('targets.txt','r') as targets:
         for targeturl in targets:
             logger.info(f'Suricatajs working on {targeturl}')
+
             # Find all scripts in webpage
             html_resp = requests.get(targeturl).text
             soup2 = BeautifulSoup(html_resp, features='lxml')
             script_list = soup2.find_all('script')
-            # Get src link for each javascript
+            
             for script in script_list:
                 try:
                     if script.get('src'):
                         logger.debug(script)
                         script_url = urljoin(targeturl,script['src'])
-                        #javascript_set.add(script_url)
-                        stored_checksum_cur = c_cursor.execute('SELECT checksum FROM suricatajs WHERE javascript=?', (script_url,)).fetchone()
-                        if stored_checksum_cur:
-                            jssource = requests.get(script_url).text
-                            # Calculate the checksum
-                            new_checksum = hashlib.sha256(jssource.encode(encoding='utf-8')).hexdigest()
-                            result = compare(stored_checksum_cur[0],new_checksum)
-                            if result == False:
-                                timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-                                c_cursor.execute('INSERT INTO alerts VALUES (?,?,?,?)', (script_url, stored_checksum_cur[0] , new_checksum,timestamp))
-                                conn.commit()
+                        jssource = requests.get(script_url).text
+                        suricata_js = SuricataJSObject(script_url, jssource)
+
+                        is_match, stored_checksum = suricata_js.compare_with_db(c_cursor)
+
+                        if not is_match:
+                                if stored_checksum:
+                                    logger.warning(f'Checksum mismatch for {script_url}')
+                                    c_cursor.execute('INSERT INTO alerts VALUES (?,?,?,?)', (script_url, stored_checksum , suricata_js.checksum,suricata_js.date))
+                                    conn.commit()
 
                         else:
-                            # when new script is detected
-                            jssource = requests.get(script_url).text
+                            # when new script is detected                            
                             # Calculate the checksum
-                            new_checksum = hashlib.sha256(jssource.encode(encoding='utf-8')).hexdigest()
-                            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-                            c_cursor.execute('INSERT INTO suricatajs VALUES (?,?,?,?)', (targeturl, script_url, new_checksum,timestamp))
-                            conn.commit()
-                        
-                except (KeyError, requests.RequestsException) as e:
-                    logger.error(f"Error reading script or fetching JavaScript source from {targeturl}: {e}")
+                            logger.info(f'New scrupt detected: {script_url}')
+                            suricata_js.save_to_db(c_cursor,conn)
+
+                except requests.RequestException as e:
+                    logger.error(f"Error fetching script from {targeturl}: {e}")
+                except KeyError as e:
+                    logger.error(f"KeyError processing script in {targeturl}: {e}")
 
     
 
