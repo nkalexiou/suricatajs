@@ -38,17 +38,9 @@ def configure_logger(log_file):
 def db_initiate():
     logger.info('Creating database tables')
 
-    # Create the 'jsmap' table to map URLs to JavaScript code
     c_cursor.execute('''
-        CREATE TABLE IF NOT EXISTS jsmap (
-            url TEXT,
-            javascript TEXT
-        )
-    ''')
-
-    # Create the 'jschecksum' table to store JavaScript checksums and their dates
-    c_cursor.execute('''
-        CREATE TABLE IF NOT EXISTS jschecksum (
+        CREATE TABLE IF NOT EXISTS suricatajs (
+            uri TEXT,
             javascript TEXT,
             checksum TEXT,
             date TEXT
@@ -68,6 +60,14 @@ def db_initiate():
     logger.info('Database tables created successfully')
 
 
+def compare(stored_checksum, new_checksum):
+    if stored_checksum == new_checksum:
+        return True
+    else:
+        logger.warning(f'Checksum mismatch! Stored: {stored_checksum}, New: {new_checksum}')
+        return False
+
+
 def check():
     """
     Main functionality
@@ -78,7 +78,6 @@ def check():
     config = configparser.ConfigParser()
     config.read('./config/properties.ini')
 
-    db_initiate()
     javascript_set = set()
 
     with open('targets.txt','r') as targets:
@@ -91,51 +90,38 @@ def check():
             # Get src link for each javascript
             for script in script_list:
                 try:
-                    if 'src' in str(script):
-                        logger.info(script)
+                    if script.get('src'):
+                        logger.debug(script)
                         script_url = urljoin(targeturl,script['src'])
-                        # Add all scipts to set and map javascript to webpage
-                        javascript_set.add(script_url)
-                        c_cursor.execute('INSERT INTO jsmap SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM jsmap WHERE url=? AND javascript=?)', (targeturl, script_url, targeturl, script_url))
-                        conn.commit()
-                except KeyError:
-                    print("Error reading script source")
+                        #javascript_set.add(script_url)
+                        stored_checksum_cur = c_cursor.execute('SELECT checksum FROM suricatajs WHERE javascript=?', (script_url,)).fetchone()
+                        if stored_checksum_cur:
+                            jssource = requests.get(script_url).text
+                            # Calculate the checksum
+                            new_checksum = hashlib.sha256(jssource.encode(encoding='utf-8')).hexdigest()
+                            result = compare(stored_checksum_cur[0],new_checksum)
+                            if result == False:
+                                timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+                                c_cursor.execute('INSERT INTO alerts VALUES (?,?,?,?)', (script_url, stored_checksum_cur[0] , new_checksum,timestamp))
+                                conn.commit()
 
-    # For each of the detected scripts
-    for j_script in javascript_set:
-        jssource = requests.get(j_script).text
-        # Calculate the checksum
-        new_checksum = hashlib.sha256(jssource.encode(encoding='utf-8')).hexdigest()
+                        else:
+                            # when new script is detected
+                            jssource = requests.get(script_url).text
+                            # Calculate the checksum
+                            new_checksum = hashlib.sha256(jssource.encode(encoding='utf-8')).hexdigest()
+                            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+                            c_cursor.execute('INSERT INTO suricatajs VALUES (?,?,?,?)', (targeturl, script_url, new_checksum,timestamp))
+                            conn.commit()
+                        
+                except (KeyError, requests.RequestsException) as e:
+                    logger.error(f"Error reading script or fetching JavaScript source from {targeturl}: {e}")
 
-        # Check if checksum alrady exists in database
-        stored_checksum_cur = c_cursor.execute('SELECT checksum FROM jschecksum WHERE javascript=?', (j_script,)).fetchone()
-
-        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        # If checksum already exists then compare with new checksum
-        if stored_checksum_cur:
-            print(stored_checksum_cur[0])
-            stored_checksum=stored_checksum_cur[0]
-            # If new and old checksum do not match then create alert
-            if new_checksum != stored_checksum:
-                print()
-                print("//////////////////////////")
-                print("//////   WARNING   ///////")
-                print("//////////////////////////")
-                print("A new checksum was detected: "+new_checksum+" that doesn't match the value stored in the database.")
-                print("Creating alert for : "+j_script)
-                print()
-                c_cursor.execute('INSERT INTO alerts VALUES (?,?,?,?)', (j_script,stored_checksum, new_checksum, timestamp))
-                conn.commit()
-        # If checksum does not exist in database insert a new entry
-        else:
-            print("checksum insert for :"+j_script)
-            c_cursor.execute('INSERT INTO jschecksum VALUES (?,?,?)', (str(j_script), new_checksum, timestamp))
-            conn.commit()
-
-    conn.close()
+    
 
 if __name__ == "__main__":
 
     db_initiate()
     configure_logger(os.path.expanduser('app.log'))
     check()
+    conn.close()
