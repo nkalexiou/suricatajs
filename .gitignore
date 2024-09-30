@@ -135,3 +135,4 @@ suricata_venv/
 .DS_Store
 surikatajs.db
 suricatajs.db
+app.log.*

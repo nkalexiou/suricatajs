@@ -12,6 +12,7 @@ import logging
 from bs4 import BeautifulSoup
 import os
 from suricatajs_obj import SuricataJSObject as SuricataJSObject
+from alerts_obj import Alerts as Alerts
 
 conn = sqlite3.connect('surikatajs.db')
 c_cursor = conn.cursor()
@@ -97,12 +98,17 @@ def check():
                         suricata_js = SuricataJSObject(script_url, jssource)
 
                         is_match, stored_checksum = suricata_js.compare_with_db(c_cursor)
+                        logger.debug('is match: '+str(is_match))
+                        logger.debug('stored_checksum: '+str(stored_checksum))
 
-                        if not is_match:
-                                if stored_checksum:
-                                    logger.warning(f'Checksum mismatch for {script_url}')
-                                    c_cursor.execute('INSERT INTO alerts VALUES (?,?,?,?)', (script_url, stored_checksum , suricata_js.checksum,suricata_js.date))
-                                    conn.commit()
+                        if stored_checksum:
+                            if not is_match:
+                                # Create an alert and log it
+                                alert = Alerts(script_url, stored_checksum, suricata_js.checksum)
+                                log_msg = alert.__str__()
+                                alert.save_to_db(c_cursor, conn)
+                                logger.warning(log_msg)
+                                conn.commit()
 
                         else:
                             # when new script is detected                            
