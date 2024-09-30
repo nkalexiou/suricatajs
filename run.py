@@ -50,12 +50,15 @@ def db_initiate():
     ''')
 
     # Create the 'alerts' table to store alerts related to checksum changes
+    # alert_type: checksum, new_script
     c_cursor.execute('''
         CREATE TABLE IF NOT EXISTS alerts (
             javascript TEXT,
             stored_checksum TEXT,
             new_checksum TEXT,
-            date TEXT
+            date TEXT,
+            alert_msg TEXT,
+            alert_type TEXT
         )
     ''')
 
@@ -101,20 +104,26 @@ def check():
                         logger.debug('is match: '+str(is_match))
                         logger.debug('stored_checksum: '+str(stored_checksum))
 
+                        # If there is a previous checksum and there is no match
                         if stored_checksum:
                             if not is_match:
-                                # Create an alert and log it
+                                # Create a checksum missmatch alert and log it
                                 alert = Alerts(script_url, stored_checksum, suricata_js.checksum)
-                                log_msg = alert.__str__()
+                                log_msg = alert.missmatch_alert()
                                 alert.save_to_db(c_cursor, conn)
                                 logger.warning(log_msg)
                                 conn.commit()
-
-                        else:
-                            # when new script is detected                            
-                            # Calculate the checksum
-                            logger.info(f'New scrupt detected: {script_url}')
+                        
+                        # when new script is detected
+                        else:    
+                            # Store script details to db and create new script detected alert
+                            alert = Alerts(script_url, None, None)
+                            log_msg = alert.new_script_alert()
+                            alert.save_to_db(c_cursor,conn)
+                            logger.info(log_msg)
                             suricata_js.save_to_db(c_cursor,conn)
+                            conn.commit()
+
 
                 except requests.RequestException as e:
                     logger.error(f"Error fetching script from {targeturl}: {e}")
