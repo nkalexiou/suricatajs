@@ -29,3 +29,18 @@ Suricatajs uses an sqlite database and monitors all urls defined in targets.txt.
 ### Extensions and Discussion
 
 The current code is intended to be used as a template and can be greatly extended and customised. As examples of improvements, alerts can be posted to slack channels, new checksums can be set as "accepted" and replace old checksums in the database, ignore-lists of javascript can be created etc.
+
+### Starting the Flask API
+
+Make sure that flask is installed
+```
+pip3 install flask
+```
+
+Then export the env variable for mac OS
+
+```
+export FLASK_APP=app.py
+```
+
+Do ``` flask run ``` from the directory hosting app.py
