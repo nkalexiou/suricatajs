@@ -28,9 +28,23 @@ class SuricataJSObject:
         """
         Compare the current object's checksum with the one stored in the database.
         """
-        stored_checksum_cur = cursor.execute('SELECT checksum FROM suricatajs WHERE uri=?', (self.url,)).fetchone()
+
+        stored_checksum_cur = cursor.execute('SELECT checksum FROM suricatajs WHERE uri=? ORDER BY date DESC LIMIT 1', (self.url,)).fetchone()
         if stored_checksum_cur:
             stored_checksum = stored_checksum_cur[0]
             return self.checksum == stored_checksum, stored_checksum
         else:
             return False, None
+    
+    def find_source_in_db(self, source, cursor):
+        """
+        Fetch script from db using the Javascript content
+        """
+        stored_checksum_cur = cursor.execute('SELECT checksum FROM suricatajs WHERE javascript=?', (source,)).fetchone()
+
+        if stored_checksum_cur:
+            stored_checksum = stored_checksum_cur[0]
+            return stored_checksum, True
+        else:
+            return None, False
+

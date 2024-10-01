@@ -5,7 +5,7 @@ conn = sqlite3.connect('surikatajs.db')
 cursor = conn.cursor()
 
 # Execute a query
-cursor.execute("SELECT * FROM suricatajs")
+cursor.execute("SELECT uri, checksum, date FROM suricatajs")
 
 # Fetch and print the results
 rows = cursor.fetchall()

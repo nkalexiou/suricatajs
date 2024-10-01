@@ -83,8 +83,12 @@ def check():
     config = configparser.ConfigParser()
     config.read('./config/properties.ini')
 
-    with open('targets.txt','r') as targets:
+    with open('targets.txt','r') as targets: 
+
         for targeturl in targets:
+
+            inline_scripts_set = set()
+
             logger.info(f'Suricatajs working on {targeturl}')
 
             # Find all scripts in webpage
@@ -94,24 +98,30 @@ def check():
             
             for script in script_list:
                 try:
+                    # Scripts with tags
                     if script.get('src'):
-                        logger.debug(script)
                         script_url = urljoin(targeturl,script['src'])
+                        logger.info(f'Working on {script_url}')
                         jssource = requests.get(script_url).text
                         suricata_js = SuricataJSObject(script_url, jssource)
 
+                        # Compare new object and new checksum with database value based on url of script
+                        # Compares with the latest available entry from the db (date based)
                         is_match, stored_checksum = suricata_js.compare_with_db(c_cursor)
-                        logger.debug('is match: '+str(is_match))
-                        logger.debug('stored_checksum: '+str(stored_checksum))
 
                         # If there is a previous checksum and there is no match
                         if stored_checksum:
                             if not is_match:
                                 # Create a checksum missmatch alert and log it
+                                # suricata_js.checksum is the new checksum
                                 alert = Alerts(script_url, stored_checksum, suricata_js.checksum)
                                 log_msg = alert.missmatch_alert()
                                 alert.save_to_db(c_cursor, conn)
                                 logger.warning(log_msg)
+                                logger.debug(suricata_js.checksum)
+
+                                # store a new object in db with the new checksum and details
+                                suricata_js.save_to_db(c_cursor,conn)
                                 conn.commit()
                         
                         # when new script is detected
@@ -123,12 +133,35 @@ def check():
                             logger.info(log_msg)
                             suricata_js.save_to_db(c_cursor,conn)
                             conn.commit()
+                    
+                    '''
+                    elif script.string:
+                        inline_script = script.string.strip()  # Get the inline script content
+                        
+                        # add the set of inline scripts detected during this run
+                        inline_scripts_set.add(inline_script)
+                        
+                        suricata_js = SuricataJSObject(None, inline_script)
+
+                        checksum, source_exists = suricata_js.find_source_in_db(inline_script,c_cursor)
+
+                        if not source_exists:
+                            alert = Alerts(source_exists, None, None)
+                            log_msg = alert.new_script_alert()
+                            alert.save_to_db(c_cursor,conn)
+                            logger.info(log_msg)
+                            suricata_js.save_to_db(c_cursor,conn)
+                            conn.commit()
+                    '''
+
 
 
                 except requests.RequestException as e:
                     logger.error(f"Error fetching script from {targeturl}: {e}")
                 except KeyError as e:
                     logger.error(f"KeyError processing script in {targeturl}: {e}")
+            
+
 
     
 
