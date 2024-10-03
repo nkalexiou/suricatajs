@@ -1,0 +1,14 @@
+name: Github Actions Code Statistics
+run-name: Creating code statistics on ${{ github.repository }}
+on: 
+  schedule:
+    - cron: "0 21 15 * *"
+
+  workflow_dispatch:
+
+jobs:
+  Lines-of-code:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Running"
+  
