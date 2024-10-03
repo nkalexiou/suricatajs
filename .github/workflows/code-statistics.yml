@@ -1,14 +1,21 @@
-name: Github Actions Code Statistics
+name: Code Statistics
 run-name: Creating code statistics on ${{ github.repository }}
 on: 
-  schedule:
-    - cron: "0 21 15 * *"
-
-  workflow_dispatch:
+  push:
+    branches:
+      - master  # Trigger the workflow only on pushes to the master branch
+  workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
   Lines-of-code:
     runs-on: ubuntu-latest
+    container: 
+      image: aldanial/cloc:latest
     steps:
-      - run: echo "Running"
-  
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: master  # Ensure the master branch is checked out
+
+      - name: Run cloc analysis on code
+        run: cloc .
