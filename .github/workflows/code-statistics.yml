@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: master  # Ensure the master branch is checked out
-
+      - name: Install cloc
+        run: sudo apt-get update && sudo apt-get install -y cloc
       - name: Run cloc analysis on code
         run: cloc .
