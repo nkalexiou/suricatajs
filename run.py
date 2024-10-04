@@ -14,7 +14,7 @@ import os
 from suricatajs_obj import SuricataJSObject as SuricataJSObject
 from alerts_obj import Alerts as Alerts
 
-conn = sqlite3.connect('surikatajs.db')
+conn = sqlite3.connect('./db/surikatajs.db')
 c_cursor = conn.cursor()
 
 logger = logging.getLogger("my_logger")
@@ -168,6 +168,6 @@ def check():
 if __name__ == "__main__":
 
     db_initiate()
-    configure_logger(os.path.expanduser('app.log'))
+    configure_logger(os.path.expanduser('./log/app.log'))
     check()
     conn.close()
