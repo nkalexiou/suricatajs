@@ -1,12 +1,13 @@
 # suricatajs
 
-Suricatajs is a python program that can be used to monitor webpages, in order to detect unauthorised changes in production javascript. In a commonly used technique, hacking groups alter the code of javascript running on pages, such as those handling credit card or personal information, in order to steal sensitive information. 
-
-By taking snapshots of javascript in scope using cryptographic hashes, Suricatajs can detect unauthorized changes and provide an early warning to defenders.
+Suricatajs is used to detect unauthorized changes in javascript code, a method often used to inject malware in and digital skimming software in webpages.  Suricatajs works by taking snapshots of a webpage's javascript and comparing those to its database. Snapshots are calculated as hashes to detect changes and when a change is detected an alert is created. 
 
 ### Installation
 
 Python 3.X required.
+
+pip install -r requirements.txt
+
 Test by ```python run.py```
 
 ### How to use
@@ -17,6 +18,7 @@ Update targets.txt with the urls in scope as shown below:
 https://www.yourwebsite1.com/test1
 https://www.yourwebsite2.com/test2
 ````
+
 Run manually or schedule the command
 ```
 python run.py
