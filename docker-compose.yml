@@ -1,0 +1,17 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8085:8085"
+    container_name: flask_api
+    restart: always
+    command: ["python", "app.py"]
+
+  runner:
+    build: .
+    container_name: script_runner
+    restart: "no"
+    command: ["python", "run.py"]

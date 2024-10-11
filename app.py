@@ -4,7 +4,7 @@ import sqlite3
 app = Flask(__name__)
 
 def get_db_connection():
-    conn = sqlite3.connect('surikatajs.db')
+    conn = sqlite3.connect('./db/surikatajs.db')
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -44,4 +44,4 @@ def get_alerts():
     return jsonify(alerts)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=8085)
