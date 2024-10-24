@@ -1,0 +1,24 @@
+name: Dynamic analysis (DAST)
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  Dynamic-Analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: master
+      - name: Start containers
+        run: docker-compose up -d --build
+      - name: DAST scan
+        uses: projectdiscovery/nuclei-action@v2.0.1
+        with:
+          target: http://localhost:8085
+      - name: Stop suricatajs
+        run: docker-compose down
+          
