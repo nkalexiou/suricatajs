@@ -1,9 +1,9 @@
 name: Code Statistics
 run-name: Creating code statistics on ${{ github.repository }}
-on: 
-  push:
-    branches:
-      - master  # Trigger the workflow only on pushes to the master branch
+on:
+  schedule:
+    - cron: 30 5 * * 1
+  
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
