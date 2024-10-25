@@ -20,7 +20,7 @@ jobs:
         run: docker build . -t suricatajs:testsec
         
       - name: Trivy scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28
         with:
           image-ref: suricatajs:testsec
           scan-type: image
