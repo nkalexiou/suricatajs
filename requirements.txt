@@ -13,4 +13,4 @@ MarkupSafe==2.1.5
 requests==2.32.3
 soupsieve==2.6
 urllib3==2.2.3
-Werkzeug==3.0.4
+Werkzeug==3.1.1
