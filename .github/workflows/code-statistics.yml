@@ -1,5 +1,7 @@
 name: Code Statistics
 run-name: Creating code statistics on ${{ github.repository }}
+permissions:
+  contents: read
 on:
   schedule:
     - cron: 30 5 * * 1
