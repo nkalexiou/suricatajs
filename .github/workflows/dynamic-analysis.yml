@@ -1,4 +1,6 @@
 name: Dynamic analysis (DAST)
+permissions:
+  contents: read
 on:
   workflow_dispatch:
 
