@@ -1,4 +1,6 @@
 name: Docker image scanning
+permissions:
+  contents: read
 on:
   workflow_dispatch:
 
