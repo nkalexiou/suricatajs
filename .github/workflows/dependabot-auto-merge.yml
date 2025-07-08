@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  build:
+  check-builds-ok:
     #if: github.actor == 'dependabot[bot]'  # only run for Dependabot PRs
     runs-on: ubuntu-latest
 
