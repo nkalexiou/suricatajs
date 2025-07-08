@@ -8,6 +8,8 @@ on:
   pull_request:
     branches:
       - '**' # Triggers on any branch for pull requests
+    paths-ignore:
+      - 'requirements.txt' # Ignore changes to requirements.txt
 
 jobs:
   docker-security-scans:
