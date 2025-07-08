@@ -2,7 +2,8 @@ name: Dependabot Auto Merge
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    branches:
+      - master
 
 jobs:
   build:
