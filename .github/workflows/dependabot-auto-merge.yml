@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    if: github.actor == 'dependabot[bot]'  # only run for Dependabot PRs
+    #if: github.actor == 'dependabot[bot]'  # only run for Dependabot PRs
     runs-on: ubuntu-latest
 
     steps:
