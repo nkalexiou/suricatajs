@@ -17,11 +17,13 @@ on:
     paths-ignore:
       - '**/*.md'
       - '**/*.txt'
+      - '**/*.yml'
   pull_request:
     branches: [ "master" ]
     paths-ignore:
       - '**/*.md'
       - '**/*.txt'
+      - '**/*.yml'
 
 jobs:
   analyze:
