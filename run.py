@@ -19,9 +19,14 @@ c_cursor = conn.cursor()
 
 logger = logging.getLogger("my_logger")
 
+
 def configure_logger(log_file):
     # Create a logger
     logger.setLevel(logging.DEBUG)
+
+    log_dir = os.path.dirname(log_file)
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
 
     # Create a formatter
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -89,7 +94,7 @@ def check():
     config = configparser.ConfigParser()
     config.read('./config/properties.ini')
 
-    with open('targets.txt','r') as targets: 
+    with open('targets.txt','r') as targets:
 
         for targeturl in targets:
 
@@ -101,7 +106,7 @@ def check():
             html_resp = requests.get(targeturl).text
             soup2 = BeautifulSoup(html_resp, features='lxml')
             script_list = soup2.find_all('script')
-            
+
             for script in script_list:
                 try:
                     # Scripts with tags
@@ -129,7 +134,7 @@ def check():
                                 # store a new object in db with the new checksum and details
                                 suricata_js.save_to_db(c_cursor,conn)
                                 conn.commit()
-                        
+
                         # when new script is detected
                         else:    
                             # Store script details to db and create new script detected alert
@@ -139,14 +144,14 @@ def check():
                             logger.info(log_msg)
                             suricata_js.save_to_db(c_cursor,conn)
                             conn.commit()
-                    
+
                     '''
                     elif script.string:
                         inline_script = script.string.strip()  # Get the inline script content
-                        
+
                         # add the set of inline scripts detected during this run
                         inline_scripts_set.add(inline_script)
-                        
+
                         suricata_js = SuricataJSObject(None, inline_script)
 
                         checksum, source_exists = suricata_js.find_source_in_db(inline_script,c_cursor)
@@ -166,10 +171,7 @@ def check():
                     logger.error(f"Error fetching script from {targeturl}: {e}")
                 except KeyError as e:
                     logger.error(f"KeyError processing script in {targeturl}: {e}")
-            
 
-
-    
 
 if __name__ == "__main__":
 
