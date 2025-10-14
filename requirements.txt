@@ -2,7 +2,7 @@ beautifulsoup4==4.14.2
 blinker==1.9.0
 bs4==0.0.2
 certifi==2025.10.5
-charset-normalizer==3.4.3
+charset-normalizer==3.4.4
 click==8.3.0
 Flask==3.1.2
 idna==3.11
