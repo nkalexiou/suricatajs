@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.routers import alerts, health
+from api.routers import alerts, health, targets
 
 
 def create_app() -> FastAPI:
@@ -10,6 +10,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(health.router)
     app.include_router(alerts.router)
+    app.include_router(targets.router)
     return app
 
 

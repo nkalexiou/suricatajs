@@ -69,9 +69,11 @@ def test_alert_response_schema(client, auth_headers):
     _seed_alert("https://example.com/a.js", "new_script")
     data = client.get("/alerts", headers=auth_headers).json()
     alert = data[0]
+    assert "id" in alert
     assert "javascript" in alert
     assert "stored_checksum" in alert
     assert "new_checksum" in alert
     assert "date" in alert
     assert "alert_msg" in alert
     assert "alert_type" in alert
+    assert "diff" in alert
