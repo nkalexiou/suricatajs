@@ -1,50 +1,50 @@
 import hashlib
 import datetime
+from sqlalchemy import text
+from db.database import get_connection
+
 
 class SuricataJSObject:
     def __init__(self, url, javascript, checksum=None, date=None):
-        """
-        Initialize a SuricataJS object with the URL, JavaScript content, checksum, and timestamp.
-        """
         self.url = url
         self.javascript = javascript
-        self.checksum = checksum or self.calculate_checksum(javascript)
-        self.date = date or datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        self.checksum = checksum or self._calculate_checksum(javascript)
+        if date is None:
+            now = datetime.datetime.now()
+            self.date = now.strftime('%Y%m%d_%H%M%S%f')
+        else:
+            self.date = date
 
-    def calculate_checksum(self, javascript):
-        """
-        Calculate the SHA-256 checksum of the JavaScript content.
-        """
+    def _calculate_checksum(self, javascript):
         return hashlib.sha256(javascript.encode('utf-8')).hexdigest()
 
-    def save_to_db(self, cursor, connection):
-        """
-        Save the SuricataJS object to the database.
-        """
-        cursor.execute('INSERT INTO suricatajs VALUES (?,?,?,?)', (self.url, self.javascript, self.checksum, self.date))
-        connection.commit()
+    def save_to_db(self):
+        with get_connection() as conn:
+            conn.execute(
+                text("INSERT INTO suricatajs (uri, javascript, checksum, date) "
+                     "VALUES (:uri, :javascript, :checksum, :date)"),
+                {"uri": self.url, "javascript": self.javascript,
+                 "checksum": self.checksum, "date": self.date},
+            )
 
-    def compare_with_db(self, cursor):
-        """
-        Compare the current object's checksum with the one stored in the database.
-        """
+    def compare_with_db(self):
+        with get_connection() as conn:
+            row = conn.execute(
+                text("SELECT checksum FROM suricatajs WHERE uri=:uri "
+                     "ORDER BY date DESC LIMIT 1"),
+                {"uri": self.url},
+            ).fetchone()
+        if row:
+            stored = row[0]
+            return self.checksum == stored, stored
+        return False, None
 
-        stored_checksum_cur = cursor.execute('SELECT checksum FROM suricatajs WHERE uri=? ORDER BY date DESC LIMIT 1', (self.url,)).fetchone()
-        if stored_checksum_cur:
-            stored_checksum = stored_checksum_cur[0]
-            return self.checksum == stored_checksum, stored_checksum
-        else:
-            return False, None
-    
-    def find_source_in_db(self, source, cursor):
-        """
-        Fetch script from db using the Javascript content
-        """
-        stored_checksum_cur = cursor.execute('SELECT checksum FROM suricatajs WHERE javascript=?', (source,)).fetchone()
-
-        if stored_checksum_cur:
-            stored_checksum = stored_checksum_cur[0]
-            return stored_checksum, True
-        else:
-            return None, False
-
+    def find_source_in_db(self, source):
+        with get_connection() as conn:
+            row = conn.execute(
+                text("SELECT checksum FROM suricatajs WHERE javascript=:javascript"),
+                {"javascript": source},
+            ).fetchone()
+        if row:
+            return row[0], True
+        return None, False
