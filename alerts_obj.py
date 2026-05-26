@@ -10,7 +10,7 @@ class Alerts:
         self.new_checksum = new_checksum
         if date is None:
             now = datetime.datetime.now()
-            self.date = now.strftime('%Y%m%d_%H%M%S%f')
+            self.date = now.strftime('%Y%m%d_%H%M%S')
         else:
             self.date = date
         self.alert_msg = None

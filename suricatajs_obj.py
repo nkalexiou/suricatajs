@@ -11,7 +11,7 @@ class SuricataJSObject:
         self.checksum = checksum or self._calculate_checksum(javascript)
         if date is None:
             now = datetime.datetime.now()
-            self.date = now.strftime('%Y%m%d_%H%M%S%f')
+            self.date = now.strftime('%Y%m%d_%H%M%S')
         else:
             self.date = date
 
