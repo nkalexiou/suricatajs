@@ -18,6 +18,7 @@ def fresh_db():
     yield
     from db.database import get_engine
     with get_engine().connect() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS targets"))
         conn.execute(text("DROP TABLE IF EXISTS alerts"))
         conn.execute(text("DROP TABLE IF EXISTS suricatajs"))
         conn.commit()
