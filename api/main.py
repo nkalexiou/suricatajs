@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.routers import health
+from api.routers import alerts, health
 
 
 def create_app() -> FastAPI:
@@ -9,6 +9,7 @@ def create_app() -> FastAPI:
         description="JavaScript integrity monitoring API",
     )
     app.include_router(health.router)
+    app.include_router(alerts.router)
     return app
 
 
