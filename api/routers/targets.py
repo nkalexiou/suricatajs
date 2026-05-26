@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -8,6 +9,8 @@ from sqlalchemy import text
 from api.auth import require_api_key
 from api.models import ApproveRequest, TargetCreate, TargetResponse
 from db.database import get_connection
+
+logger = logging.getLogger("suricatajs")
 
 router = APIRouter(prefix="/targets", dependencies=[Depends(require_api_key)])
 
@@ -43,7 +46,7 @@ def create_target(body: TargetCreate):
     tags_json = json.dumps(body.tags) if body.tags else None
     try:
         with get_connection() as conn:
-            conn.execute(
+            result = conn.execute(
                 text("INSERT INTO targets (url, name, tags, owner, scan_interval_minutes, created_at) "
                      "VALUES (:url, :name, :tags, :owner, :interval, :created_at)"),
                 {
@@ -55,16 +58,19 @@ def create_target(body: TargetCreate):
                     "created_at": now,
                 },
             )
+            new_id = result.lastrowid
             row = conn.execute(
                 text("SELECT id, url, name, tags, owner, scan_interval_minutes, "
                      "approved_checksum, approval_note, approved_at, created_at "
-                     "FROM targets WHERE url = :url"),
-                {"url": body.url},
+                     "FROM targets WHERE id = :id"),
+                {"id": new_id},
             ).fetchone()
     except Exception as e:
         if "UNIQUE" in str(e) or "unique" in str(e) or "duplicate" in str(e).lower():
             raise HTTPException(status_code=409, detail="Target URL already exists")
         raise
+    if row is None:
+        raise HTTPException(status_code=500, detail="Target created but could not be retrieved")
     return _row_to_target(row)
 
 
@@ -90,12 +96,18 @@ def approve_target(target_id: int, body: ApproveRequest):
             raise HTTPException(status_code=404, detail="Target not found")
 
         page_url = target_row[1]
+        escaped_url = page_url.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         checksum_row = conn.execute(
-            text("SELECT checksum FROM suricatajs WHERE uri LIKE :prefix "
+            text("SELECT checksum FROM suricatajs WHERE uri LIKE :prefix ESCAPE '\\' "
                  "ORDER BY date DESC LIMIT 1"),
-            {"prefix": f"{page_url}%"},
+            {"prefix": f"{escaped_url}%"},
         ).fetchone()
         approved_checksum = checksum_row[0] if checksum_row else None
+        if approved_checksum is None:
+            logger.warning(
+                f"Approving target {target_id} ({page_url}) with no prior scan data — "
+                "approved_checksum will be null"
+            )
 
         conn.execute(
             text("UPDATE targets SET approved_checksum = :checksum, "
