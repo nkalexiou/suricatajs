@@ -39,6 +39,15 @@ class SuricataJSObject:
             return self.checksum == stored, stored
         return False, None
 
+    def get_stored_javascript(self):
+        with get_connection() as conn:
+            row = conn.execute(
+                text("SELECT javascript FROM suricatajs WHERE uri=:uri "
+                     "ORDER BY date DESC LIMIT 1"),
+                {"uri": self.url},
+            ).fetchone()
+        return row[0] if row else ""
+
     def find_source_in_db(self, source):
         with get_connection() as conn:
             row = conn.execute(

@@ -4,7 +4,7 @@ from db.database import get_connection
 
 
 class Alerts:
-    def __init__(self, javascript, stored_checksum, new_checksum, date=None):
+    def __init__(self, javascript, stored_checksum, new_checksum, date=None, diff=None):
         self.javascript = javascript
         self.stored_checksum = stored_checksum
         self.new_checksum = new_checksum
@@ -13,6 +13,7 @@ class Alerts:
             self.date = now.strftime('%Y%m%d_%H%M%S')
         else:
             self.date = date
+        self.diff = diff
         self.alert_msg = None
         self.alert_type = None
 
@@ -20,8 +21,8 @@ class Alerts:
         with get_connection() as conn:
             conn.execute(
                 text("INSERT INTO alerts "
-                     "(javascript, stored_checksum, new_checksum, date, alert_msg, alert_type) "
-                     "VALUES (:javascript, :stored_checksum, :new_checksum, :date, :alert_msg, :alert_type)"),
+                     "(javascript, stored_checksum, new_checksum, date, alert_msg, alert_type, diff) "
+                     "VALUES (:javascript, :stored_checksum, :new_checksum, :date, :alert_msg, :alert_type, :diff)"),
                 {
                     "javascript": self.javascript,
                     "stored_checksum": self.stored_checksum,
@@ -29,6 +30,7 @@ class Alerts:
                     "date": self.date,
                     "alert_msg": self.alert_msg,
                     "alert_type": self.alert_type,
+                    "diff": self.diff,
                 },
             )
 
