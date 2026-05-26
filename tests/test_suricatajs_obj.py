@@ -33,10 +33,11 @@ def test_compare_no_prior_entry(fresh_db):
 
 
 def test_compare_returns_latest_checksum(fresh_db):
-    first = SuricataJSObject("https://example.com/a.js", "v1")
+    first = SuricataJSObject("https://example.com/a.js", "v1", date="20260525_120000")
     first.save_to_db()
-    second = SuricataJSObject("https://example.com/a.js", "v2")
+    second = SuricataJSObject("https://example.com/a.js", "v2", date="20260525_120001")
     second.save_to_db()
+
     probe = SuricataJSObject("https://example.com/a.js", "v2")
     is_match, stored = probe.compare_with_db()
     assert is_match is True
