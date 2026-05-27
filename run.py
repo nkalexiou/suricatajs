@@ -1,7 +1,8 @@
 """
-Main suricatajs file. Scanner logic lives in check().
+Main suricatajs file. Scanner logic lives in check() and check_target().
 """
-import configparser
+import difflib
+import hashlib
 import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
@@ -31,57 +32,100 @@ def configure_logger(log_file):
     logger.addHandler(console_handler)
 
 
-def check(targets_file="targets.txt"):
-    """
-    Scan all targets, compute checksums, create alerts on change or new script.
-    targets_file: path to the targets list (one URL per line).
-    """
-    config = configparser.ConfigParser()
-    config.read("./config/properties.ini")
+def _compute_diff(old_js: str, new_js: str) -> str:
+    lines = difflib.unified_diff(
+        old_js.splitlines(keepends=True),
+        new_js.splitlines(keepends=True),
+        fromfile="stored",
+        tofile="current",
+    )
+    return "".join(lines)
 
-    with open(targets_file, "r") as f:
-        for line in f:
-            targeturl = line.strip()
-            if not targeturl:
-                continue
 
-            logger.info(f"Scanning {targeturl}")
+def _scan_external_script(script_url: str):
+    logger.info(f"Processing {script_url}")
+    jssource = requests.get(script_url, timeout=30).text
+    suricata_js = SuricataJSObject(script_url, jssource)
+    is_match, stored_checksum = suricata_js.compare_with_db()
 
-            try:
-                html_resp = requests.get(targeturl, timeout=30).text
-                soup = BeautifulSoup(html_resp, features="lxml")
+    if stored_checksum is not None:
+        if not is_match:
+            stored_js = suricata_js.get_stored_javascript()
+            diff = _compute_diff(stored_js, jssource)
+            alert = Alerts(script_url, stored_checksum, suricata_js.checksum, diff=diff)
+            logger.warning(alert.missmatch_alert())
+            alert.save_to_db()
+            suricata_js.save_to_db()
+    else:
+        alert = Alerts(script_url, None, None)
+        logger.info(alert.new_script_alert())
+        alert.save_to_db()
+        suricata_js.save_to_db()
 
-                for script in soup.find_all("script"):
-                    if not script.get("src"):
-                        continue
-                    try:
-                        script_url = urljoin(targeturl, script["src"])
-                        logger.info(f"Processing {script_url}")
-                        jssource = requests.get(script_url, timeout=30).text
-                        suricata_js = SuricataJSObject(script_url, jssource)
 
-                        is_match, stored_checksum = suricata_js.compare_with_db()
+def _scan_inline_script(page_url: str, content: str):
+    content = content.strip()
+    if not content:
+        return
+    script_id = hashlib.sha256(content.encode()).hexdigest()[:16]
+    synthetic_url = f"{page_url}#inline-{script_id}"
+    logger.info(f"Processing inline script {synthetic_url}")
 
-                        if stored_checksum is not None:
-                            if not is_match:
-                                alert = Alerts(script_url, stored_checksum, suricata_js.checksum)
-                                logger.warning(alert.missmatch_alert())
-                                alert.save_to_db()
-                                suricata_js.save_to_db()
-                        else:
-                            alert = Alerts(script_url, None, None)
-                            logger.info(alert.new_script_alert())
-                            alert.save_to_db()
-                            suricata_js.save_to_db()
+    suricata_js = SuricataJSObject(synthetic_url, content)
+    is_match, stored_checksum = suricata_js.compare_with_db()
 
-                    except requests.RequestException as e:
-                        logger.error(f"Error fetching script: {e}")
+    if stored_checksum is not None:
+        if not is_match:
+            stored_js = suricata_js.get_stored_javascript()
+            diff = _compute_diff(stored_js, content)
+            alert = Alerts(synthetic_url, stored_checksum, suricata_js.checksum, diff=diff)
+            logger.warning(alert.missmatch_alert())
+            alert.save_to_db()
+            suricata_js.save_to_db()
+    else:
+        alert = Alerts(synthetic_url, None, None)
+        logger.info(alert.new_script_alert())
+        alert.save_to_db()
+        suricata_js.save_to_db()
 
-            except requests.RequestException as e:
-                logger.error(f"Error fetching {targeturl}: {e}")
+
+def check_target(target: dict):
+    """Scan a single target page URL for all its scripts."""
+    targeturl = target["url"]
+    logger.info(f"Scanning {targeturl}")
+    try:
+        html_resp = requests.get(targeturl, timeout=30).text
+        soup = BeautifulSoup(html_resp, features="lxml")
+
+        for script in soup.find_all("script"):
+            src = script.get("src")
+            if src:
+                try:
+                    script_url = urljoin(targeturl, src)
+                    _scan_external_script(script_url)
+                except requests.RequestException as e:
+                    logger.error(f"Error fetching script {src}: {e}")
+            else:
+                _scan_inline_script(targeturl, script.get_text())
+
+    except requests.RequestException as e:
+        logger.error(f"Error fetching {targeturl}: {e}")
+
+
+def check(targets_file: str = "targets.txt"):
+    """Scan all targets. Loads from DB first; falls back to targets file."""
+    from scanner.loader import load_targets
+    targets = load_targets(targets_file)
+    for target in targets:
+        check_target(target)
 
 
 if __name__ == "__main__":
     init_db()
     configure_logger(os.path.expanduser("./log/app.log"))
-    check()
+    scan_mode = os.getenv("SCAN_MODE", "once")
+    if scan_mode == "scheduled":
+        from scanner.scheduler import start_scheduler
+        start_scheduler()
+    else:
+        check()
