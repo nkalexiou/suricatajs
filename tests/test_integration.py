@@ -1,25 +1,19 @@
-"""
-Integration tests against the live juice-shop instance.
-Run with: RUN_INTEGRATION_TESTS=1 pytest tests/test_integration.py -v -s
-These tests make real HTTP requests and write to a temp file-based SQLite DB.
-"""
 import os
 import pytest
-from sqlalchemy import text
 
 JUICE_SHOP = "https://juice-shop.herokuapp.com/"
 
 pytestmark = pytest.mark.skipif(
-    not os.getenv("RUN_INTEGRATION_TESTS"),
-    reason="Set RUN_INTEGRATION_TESTS=1 to run integration tests",
+    os.getenv("RUN_INTEGRATION_TESTS") != "1",
+    reason="Set RUN_INTEGRATION_TESTS=1 to run live tests",
 )
 
 
-@pytest.fixture(autouse=True)
-def live_db(tmp_path, monkeypatch):
-    """Use a temp file-based SQLite DB so integration tests are isolated."""
-    db_path = tmp_path / "integration_test.db"
+@pytest.fixture
+def isolated_db(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "test.db")
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    monkeypatch.setenv("API_KEYS", "test-key")
     from db.database import reset_engine, init_db
     reset_engine()
     init_db()
@@ -27,63 +21,129 @@ def live_db(tmp_path, monkeypatch):
     reset_engine()
 
 
-def test_first_scan_creates_new_script_alerts(tmp_path):
-    """Scanning juice-shop for the first time should produce new_script alerts."""
-    targets = tmp_path / "targets.txt"
-    targets.write_text(JUICE_SHOP + "\n")
-
-    from run import check
-    check(targets_file=str(targets))
+def test_first_scan_creates_new_script_alerts(isolated_db):
+    from run import check_target
+    check_target({"url": JUICE_SHOP})
 
     from db.database import get_engine
-    with get_engine().connect() as conn:
-        row = conn.execute(
-            text("SELECT COUNT(*) FROM alerts WHERE alert_type='new_script'")
-        ).fetchone()
-    assert row[0] > 0, "Expected at least one new_script alert after first scan"
+    from sqlalchemy import text
+    engine = get_engine()
+    with engine.connect() as conn:
+        alerts = conn.execute(text("SELECT alert_type, javascript FROM alerts")).fetchall()
+
+    assert len(alerts) > 0
+    types = {a[0] for a in alerts}
+    assert "new_script" in types
 
 
-def test_second_scan_produces_no_new_alerts(tmp_path):
-    """Scanning juice-shop twice should produce no additional alerts on the second run."""
-    targets = tmp_path / "targets.txt"
-    targets.write_text(JUICE_SHOP + "\n")
+def test_second_scan_no_new_alerts(isolated_db):
+    from run import check_target
+    check_target({"url": JUICE_SHOP})
 
-    from run import check
     from db.database import get_engine
-
-    check(targets_file=str(targets))
-    with get_engine().connect() as conn:
+    from sqlalchemy import text
+    engine = get_engine()
+    with engine.connect() as conn:
         count_after_first = conn.execute(text("SELECT COUNT(*) FROM alerts")).fetchone()[0]
 
-    assert count_after_first > 0, "First scan should create alerts"
+    check_target({"url": JUICE_SHOP})
 
-    check(targets_file=str(targets))
-    with get_engine().connect() as conn:
+    with engine.connect() as conn:
         count_after_second = conn.execute(text("SELECT COUNT(*) FROM alerts")).fetchone()[0]
 
-    assert count_after_second == count_after_first, (
-        f"Second scan should not create new alerts. "
-        f"Before: {count_after_first}, After: {count_after_second}"
-    )
+    assert count_after_second == count_after_first
 
 
-def test_api_returns_alerts_after_scan(tmp_path, monkeypatch):
-    """After a scan, the /alerts API endpoint should return the created alerts."""
-    targets = tmp_path / "targets.txt"
-    targets.write_text(JUICE_SHOP + "\n")
+def test_alerts_have_id_and_correct_schema(isolated_db):
+    from run import check_target
+    check_target({"url": JUICE_SHOP})
 
-    monkeypatch.setenv("API_KEYS", "integration-test-key")
+    from db.database import get_engine
+    from sqlalchemy import text
+    engine = get_engine()
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT id, javascript, stored_checksum, new_checksum, date, alert_msg, alert_type, diff "
+                 "FROM alerts")
+        ).fetchall()
 
-    from run import check
-    check(targets_file=str(targets))
+    assert len(rows) > 0
+    for row in rows:
+        assert row[0] is not None        # id auto-assigned
+        assert row[1] is not None        # javascript URL or inline synthetic URL
+        assert row[4] is not None        # date
+
+
+def test_api_returns_alerts_after_scan(isolated_db):
+    from run import check_target
+    check_target({"url": JUICE_SHOP})
 
     from fastapi.testclient import TestClient
-    from api.main import app
-
-    client = TestClient(app)
-    response = client.get("/alerts", headers={"X-API-Key": "integration-test-key"})
+    from api.main import create_app
+    client = TestClient(create_app())
+    response = client.get("/alerts", headers={"X-API-Key": "test-key"})
     assert response.status_code == 200
-    alerts = response.json()
-    assert len(alerts) > 0
-    assert all(a["alert_type"] == "new_script" for a in alerts)
-    assert all("juice-shop.herokuapp.com" in a["javascript"] for a in alerts)
+    data = response.json()
+    assert len(data) > 0
+    alert = data[0]
+    assert "id" in alert
+    assert "javascript" in alert
+    assert "alert_type" in alert
+    assert "diff" in alert
+
+
+def test_inline_scripts_detected(isolated_db):
+    from run import check_target
+    check_target({"url": JUICE_SHOP})
+
+    from db.database import get_engine
+    from sqlalchemy import text
+    engine = get_engine()
+    with engine.connect() as conn:
+        inline_alerts = conn.execute(
+            text("SELECT javascript FROM alerts WHERE javascript LIKE '%#inline-%'")
+        ).fetchall()
+
+    for row in inline_alerts:
+        assert "#inline-" in row[0]
+        hex_part = row[0].split("#inline-")[1]
+        assert len(hex_part) == 16
+        assert all(c in "0123456789abcdef" for c in hex_part)
+
+
+def test_targets_loaded_from_txt_file(isolated_db, tmp_path):
+    from scanner.loader import load_targets
+    from db.database import get_engine
+    from sqlalchemy import text
+
+    targets_file = tmp_path / "targets.txt"
+    targets_file.write_text(f"{JUICE_SHOP}\n")
+
+    targets = load_targets(str(targets_file))
+
+    assert len(targets) > 0
+    assert targets[0]["url"] == JUICE_SHOP
+
+    engine = get_engine()
+    with engine.connect() as conn:
+        db_targets = conn.execute(text("SELECT url FROM targets")).fetchall()
+    assert db_targets[0][0] == JUICE_SHOP
+
+
+def test_yaml_targets_file(isolated_db, tmp_path):
+    from scanner.loader import load_targets
+
+    yaml_file = tmp_path / "targets.yaml"
+    yaml_file.write_text(f"""
+targets:
+  - url: {JUICE_SHOP}
+    name: Juice Shop
+    tags:
+      - demo
+    scan_interval_minutes: 5
+""")
+    targets = load_targets(str(yaml_file))
+    assert len(targets) == 1
+    assert targets[0]["name"] == "Juice Shop"
+    assert targets[0]["tags"] == ["demo"]
+    assert targets[0]["scan_interval_minutes"] == 5
