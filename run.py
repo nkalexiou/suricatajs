@@ -104,12 +104,12 @@ def check_target(target: dict):
                     script_url = urljoin(targeturl, src)
                     _scan_external_script(script_url)
                 except requests.RequestException as e:
-                    logger.error(f"Error fetching script {src}: {e}")
+                    logger.exception(f"Error fetching script {src}: {e}")
             else:
                 _scan_inline_script(targeturl, script.get_text())
 
     except requests.RequestException as e:
-        logger.error(f"Error fetching {targeturl}: {e}")
+        logger.exception(f"Error fetching {targeturl}: {e}")
 
 
 def check(targets_file: str = "targets.txt"):

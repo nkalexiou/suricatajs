@@ -3,18 +3,17 @@ import json
 import os
 import tempfile
 import pytest
-from db.database import get_engine
+from db.database import get_connection
 from sqlalchemy import text
 
 
 def _seed_target_in_db(url, name=None, scan_interval_minutes=None):
-    with get_engine().connect() as conn:
+    with get_connection() as conn:
         conn.execute(
             text("INSERT INTO targets (url, name, scan_interval_minutes, created_at) "
                  "VALUES (:url, :name, :interval, '20260526_120000')"),
             {"url": url, "name": name, "interval": scan_interval_minutes},
         )
-        conn.commit()
 
 
 def test_load_targets_from_db(fresh_db):

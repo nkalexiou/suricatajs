@@ -27,26 +27,25 @@ def _parse_yaml(path: str) -> List[Dict]:
 
 def _import_to_db(targets: List[Dict]) -> None:
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    with get_connection() as conn:
-        for t in targets:
-            existing = conn.execute(
-                text("SELECT id FROM targets WHERE url = :url"),
-                {"url": t["url"]},
-            ).fetchone()
-            if existing:
-                continue
-            conn.execute(
-                text("INSERT INTO targets (url, name, tags, owner, scan_interval_minutes, created_at) "
-                     "VALUES (:url, :name, :tags, :owner, :interval, :created_at)"),
-                {
-                    "url": t["url"],
-                    "name": t.get("name"),
-                    "tags": json.dumps(t["tags"]) if t.get("tags") else None,
-                    "owner": t.get("owner"),
-                    "interval": t.get("scan_interval_minutes"),
-                    "created_at": now,
-                },
-            )
+    for t in targets:
+        try:
+            with get_connection() as conn:
+                conn.execute(
+                    text("INSERT INTO targets (url, name, tags, owner, scan_interval_minutes, created_at) "
+                         "VALUES (:url, :name, :tags, :owner, :interval, :created_at)"),
+                    {
+                        "url": t["url"],
+                        "name": t.get("name"),
+                        "tags": json.dumps(t["tags"]) if t.get("tags") else None,
+                        "owner": t.get("owner"),
+                        "interval": t.get("scan_interval_minutes"),
+                        "created_at": now,
+                    },
+                )
+        except Exception as e:
+            if "UNIQUE" in str(e) or "unique" in str(e) or "duplicate" in str(e).lower():
+                continue  # URL already exists; skip
+            raise
 
 
 def _rows_to_dicts(rows) -> List[Dict]:
