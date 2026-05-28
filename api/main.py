@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from api.routers import alerts, health, targets
+from api.routers import alerts, health, metrics, targets
 from db.database import init_db
 
 
@@ -18,6 +18,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.include_router(health.router)
+    app.include_router(metrics.router)
     app.include_router(alerts.router)
     app.include_router(targets.router)
     return app
