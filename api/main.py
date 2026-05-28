@@ -1,5 +1,13 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from api.routers import alerts, health, targets
+from db.database import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
 
 
 def create_app() -> FastAPI:
@@ -7,6 +15,7 @@ def create_app() -> FastAPI:
         title="SuricataJS",
         version="2.0.0",
         description="JavaScript integrity monitoring API",
+        lifespan=lifespan,
     )
     app.include_router(health.router)
     app.include_router(alerts.router)
