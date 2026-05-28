@@ -28,7 +28,7 @@ def test_get_alerts_rejects_when_api_keys_not_configured(monkeypatch):
     c = TestClient(create_app())
     response = c.get("/alerts")
     assert response.status_code == 401
-    assert "API_KEYS" in response.json()["detail"]
+    assert response.json()["detail"] == "Unauthorized"
 
 
 def test_get_alerts_empty(client, auth_headers):
