@@ -14,6 +14,8 @@ from bs4 import BeautifulSoup
 from alerts_obj import Alerts
 from db.database import init_db
 from suricatajs_obj import SuricataJSObject
+from scanner.discovery import discover_urls
+from scanner.playwright_scanner import get_page_scripts
 
 logger = logging.getLogger("suricatajs")
 
@@ -92,24 +94,50 @@ def _scan_inline_script(page_url: str, content: str):
 def check_target(target: dict):
     """Scan a single target page URL for all its scripts."""
     targeturl = target["url"]
-    logger.info(f"Scanning {targeturl}")
-    try:
-        html_resp = requests.get(targeturl, timeout=30).text
-        soup = BeautifulSoup(html_resp, features="lxml")
+    crawl_depth = target.get("crawl_depth") or 0
+    use_playwright = bool(target.get("use_playwright"))
 
+    logger.info(f"Scanning {targeturl} (crawl_depth={crawl_depth}, playwright={use_playwright})")
+
+    pages = discover_urls(targeturl, crawl_depth) if crawl_depth > 0 else [targeturl]
+
+    for page_url in pages:
+        if use_playwright:
+            _scan_page_with_playwright(page_url)
+        else:
+            _scan_page_with_requests(page_url)
+
+
+def _scan_page_with_requests(page_url: str):
+    try:
+        html_resp = requests.get(page_url, timeout=30).text
+        soup = BeautifulSoup(html_resp, features="lxml")
         for script in soup.find_all("script"):
             src = script.get("src")
             if src:
                 try:
-                    script_url = urljoin(targeturl, src)
+                    script_url = urljoin(page_url, src)
                     _scan_external_script(script_url)
                 except requests.RequestException as e:
                     logger.exception(f"Error fetching script {src}: {e}")
             else:
-                _scan_inline_script(targeturl, script.get_text())
-
+                _scan_inline_script(page_url, script.get_text())
     except requests.RequestException as e:
-        logger.exception(f"Error fetching {targeturl}: {e}")
+        logger.exception(f"Error fetching {page_url}: {e}")
+
+
+def _scan_page_with_playwright(page_url: str):
+    try:
+        scripts = get_page_scripts(page_url)
+        for script_url in scripts.get("external", []):
+            try:
+                _scan_external_script(script_url)
+            except requests.RequestException as e:
+                logger.exception(f"Error fetching script {script_url}: {e}")
+        for content in scripts.get("inline", []):
+            _scan_inline_script(page_url, content)
+    except Exception as e:
+        logger.exception(f"Error scanning {page_url} with Playwright: {e}")
 
 
 def check(targets_file: str = "targets.txt"):
