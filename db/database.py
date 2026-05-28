@@ -51,43 +51,57 @@ def _pk_type():
 
 
 def _migrate_db():
-    """Upgrade alerts table to add id and diff columns for existing deployments."""
+    """Upgrade tables for existing deployments."""
     engine = get_engine()
     url_str = str(engine.url)
     is_sqlite = url_str.startswith("sqlite")
     pk = _pk_type()
 
     insp = sa_inspect(engine)
-    if "alerts" not in insp.get_table_names():
-        return  # fresh install; init_db will create with correct schema
+    existing_tables = insp.get_table_names()
 
-    cols = {c["name"] for c in insp.get_columns("alerts")}
-    if "id" in cols:
-        return  # already migrated
+    # --- alerts table migration (pre-v2 → v2) ---
+    if "alerts" in existing_tables:
+        cols = {c["name"] for c in insp.get_columns("alerts")}
+        if "id" not in cols:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE alerts RENAME TO _alerts_pre_v2"))
+                    conn.execute(text(f"""
+                        CREATE TABLE alerts (
+                            id {pk},
+                            javascript TEXT,
+                            stored_checksum TEXT,
+                            new_checksum TEXT,
+                            date TEXT,
+                            alert_msg TEXT,
+                            alert_type TEXT,
+                            diff TEXT
+                        )
+                    """))
+                    conn.execute(text("""
+                        INSERT INTO alerts (javascript, stored_checksum, new_checksum, date, alert_msg, alert_type)
+                        SELECT javascript, stored_checksum, new_checksum, date, alert_msg, alert_type
+                        FROM _alerts_pre_v2
+                    """))
+                    conn.execute(text("DROP TABLE _alerts_pre_v2"))
+                else:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN IF NOT EXISTS diff TEXT"))
 
-    with engine.begin() as conn:
-        if is_sqlite:
-            conn.execute(text("ALTER TABLE alerts RENAME TO _alerts_pre_v2"))
-            conn.execute(text(f"""
-                CREATE TABLE alerts (
-                    id {pk},
-                    javascript TEXT,
-                    stored_checksum TEXT,
-                    new_checksum TEXT,
-                    date TEXT,
-                    alert_msg TEXT,
-                    alert_type TEXT,
-                    diff TEXT
-                )
-            """))
-            conn.execute(text("""
-                INSERT INTO alerts (javascript, stored_checksum, new_checksum, date, alert_msg, alert_type)
-                SELECT javascript, stored_checksum, new_checksum, date, alert_msg, alert_type
-                FROM _alerts_pre_v2
-            """))
-            conn.execute(text("DROP TABLE _alerts_pre_v2"))
-        else:
-            conn.execute(text("ALTER TABLE alerts ADD COLUMN IF NOT EXISTS diff TEXT"))
+    # --- targets table migration (v2 → v3: add crawl_depth, use_playwright) ---
+    if "targets" in existing_tables:
+        cols = {c["name"] for c in insp.get_columns("targets")}
+        with engine.begin() as conn:
+            if "crawl_depth" not in cols:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE targets ADD COLUMN crawl_depth INTEGER NOT NULL DEFAULT 0"))
+                else:
+                    conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS crawl_depth INTEGER NOT NULL DEFAULT 0"))
+            if "use_playwright" not in cols:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE targets ADD COLUMN use_playwright INTEGER NOT NULL DEFAULT 0"))
+                else:
+                    conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS use_playwright INTEGER NOT NULL DEFAULT 0"))
 
 
 def init_db():
@@ -126,6 +140,8 @@ def init_db():
                 approved_checksum TEXT,
                 approval_note TEXT,
                 approved_at TEXT,
-                created_at TEXT NOT NULL
+                created_at TEXT NOT NULL,
+                crawl_depth INTEGER NOT NULL DEFAULT 0,
+                use_playwright INTEGER NOT NULL DEFAULT 0
             )
         """))
