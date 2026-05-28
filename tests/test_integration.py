@@ -147,3 +147,36 @@ targets:
     assert targets[0]["name"] == "Juice Shop"
     assert targets[0]["tags"] == ["demo"]
     assert targets[0]["scan_interval_minutes"] == 5
+
+
+def test_crawl_depth_1_discovers_subpages(isolated_db):
+    from scanner.discovery import discover_urls
+
+    pages = discover_urls(JUICE_SHOP, max_depth=1)
+    assert len(pages) >= 1
+    assert pages[0] == JUICE_SHOP
+
+
+def test_check_target_with_crawl_depth_1_creates_alerts(isolated_db):
+    from run import check_target
+    check_target({"url": JUICE_SHOP, "crawl_depth": 1, "use_playwright": False})
+
+    from db.database import get_engine
+    from sqlalchemy import text
+    with get_engine().connect() as conn:
+        count = conn.execute(text("SELECT COUNT(*) FROM alerts")).fetchone()[0]
+    assert count > 0
+
+
+def test_check_target_with_playwright_creates_alerts(isolated_db):
+    from run import check_target
+    check_target({"url": JUICE_SHOP, "crawl_depth": 0, "use_playwright": True})
+
+    from db.database import get_engine
+    from sqlalchemy import text
+    with get_engine().connect() as conn:
+        alerts = conn.execute(text("SELECT alert_type, javascript FROM alerts")).fetchall()
+
+    assert len(alerts) > 0
+    types = {a[0] for a in alerts}
+    assert "new_script" in types
