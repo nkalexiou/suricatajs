@@ -24,6 +24,8 @@ class TargetCreate(BaseModel):
     tags: Optional[List[str]] = None
     owner: Optional[str] = None
     scan_interval_minutes: Optional[int] = None
+    crawl_depth: Optional[int] = 0
+    use_playwright: Optional[bool] = False
 
 
 class TargetResponse(BaseModel):
@@ -37,6 +39,8 @@ class TargetResponse(BaseModel):
     approval_note: Optional[str] = None
     approved_at: Optional[str] = None
     created_at: str
+    crawl_depth: int = 0
+    use_playwright: bool = False
 
 
 class ApproveRequest(BaseModel):

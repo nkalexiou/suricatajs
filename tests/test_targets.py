@@ -79,8 +79,27 @@ def test_target_schema(client, auth_headers):
     payload = {"url": "https://example.com", "name": "Test"}
     data = client.post("/targets", json=payload, headers=auth_headers).json()
     for field in ["id", "url", "name", "tags", "owner", "scan_interval_minutes",
-                  "approved_checksum", "approval_note", "approved_at", "created_at"]:
+                  "approved_checksum", "approval_note", "approved_at", "created_at",
+                  "crawl_depth", "use_playwright"]:
         assert field in data
+
+
+def test_create_target_with_crawl_and_playwright(client, auth_headers):
+    payload = {
+        "url": "https://example.com",
+        "crawl_depth": 2,
+        "use_playwright": True,
+    }
+    data = client.post("/targets", json=payload, headers=auth_headers).json()
+    assert data["crawl_depth"] == 2
+    assert data["use_playwright"] is True
+
+
+def test_create_target_defaults_crawl_depth_and_playwright(client, auth_headers):
+    payload = {"url": "https://example.com"}
+    data = client.post("/targets", json=payload, headers=auth_headers).json()
+    assert data["crawl_depth"] == 0
+    assert data["use_playwright"] is False
 
 
 def test_approve_target(client, auth_headers):

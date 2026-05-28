@@ -27,6 +27,8 @@ def _row_to_target(r) -> TargetResponse:
         approval_note=r[7],
         approved_at=r[8],
         created_at=r[9],
+        crawl_depth=r[10] if r[10] is not None else 0,
+        use_playwright=bool(r[11]) if r[11] is not None else False,
     )
 
 
@@ -35,7 +37,8 @@ def list_targets():
     with get_connection() as conn:
         rows = conn.execute(
             text("SELECT id, url, name, tags, owner, scan_interval_minutes, "
-                 "approved_checksum, approval_note, approved_at, created_at FROM targets")
+                 "approved_checksum, approval_note, approved_at, created_at, "
+                 "crawl_depth, use_playwright FROM targets")
         ).fetchall()
     return [_row_to_target(r) for r in rows]
 
@@ -47,22 +50,25 @@ def create_target(body: TargetCreate):
     try:
         with get_connection() as conn:
             result = conn.execute(
-                text("INSERT INTO targets (url, name, tags, owner, scan_interval_minutes, created_at) "
-                     "VALUES (:url, :name, :tags, :owner, :interval, :created_at)"),
+                text("INSERT INTO targets (url, name, tags, owner, scan_interval_minutes, "
+                     "crawl_depth, use_playwright, created_at) "
+                     "VALUES (:url, :name, :tags, :owner, :interval, :crawl_depth, :use_playwright, :created_at)"),
                 {
                     "url": body.url,
                     "name": body.name,
                     "tags": tags_json,
                     "owner": body.owner,
                     "interval": body.scan_interval_minutes,
+                    "crawl_depth": body.crawl_depth if body.crawl_depth is not None else 0,
+                    "use_playwright": 1 if body.use_playwright else 0,
                     "created_at": now,
                 },
             )
             new_id = result.lastrowid
             row = conn.execute(
                 text("SELECT id, url, name, tags, owner, scan_interval_minutes, "
-                     "approved_checksum, approval_note, approved_at, created_at "
-                     "FROM targets WHERE id = :id"),
+                     "approved_checksum, approval_note, approved_at, created_at, "
+                     "crawl_depth, use_playwright FROM targets WHERE id = :id"),
                 {"id": new_id},
             ).fetchone()
     except Exception as e:
@@ -121,8 +127,8 @@ def approve_target(target_id: int, body: ApproveRequest):
         )
         row = conn.execute(
             text("SELECT id, url, name, tags, owner, scan_interval_minutes, "
-                 "approved_checksum, approval_note, approved_at, created_at "
-                 "FROM targets WHERE id = :id"),
+                 "approved_checksum, approval_note, approved_at, created_at, "
+                 "crawl_depth, use_playwright FROM targets WHERE id = :id"),
             {"id": target_id},
         ).fetchone()
     return _row_to_target(row)
