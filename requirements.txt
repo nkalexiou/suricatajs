@@ -12,6 +12,7 @@ urllib3==2.7.0
 # Scanner
 apscheduler==3.11.2
 pyyaml==6.0.3
+playwright==1.49.0
 
 # API
 fastapi==0.115.5
