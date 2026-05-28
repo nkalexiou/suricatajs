@@ -91,17 +91,18 @@ def _migrate_db():
     # --- targets table migration (v2 → v3: add crawl_depth, use_playwright) ---
     if "targets" in existing_tables:
         cols = {c["name"] for c in insp.get_columns("targets")}
-        with engine.begin() as conn:
-            if "crawl_depth" not in cols:
-                if is_sqlite:
-                    conn.execute(text("ALTER TABLE targets ADD COLUMN crawl_depth INTEGER NOT NULL DEFAULT 0"))
-                else:
-                    conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS crawl_depth INTEGER NOT NULL DEFAULT 0"))
-            if "use_playwright" not in cols:
-                if is_sqlite:
-                    conn.execute(text("ALTER TABLE targets ADD COLUMN use_playwright INTEGER NOT NULL DEFAULT 0"))
-                else:
-                    conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS use_playwright INTEGER NOT NULL DEFAULT 0"))
+        if "crawl_depth" not in cols or "use_playwright" not in cols:
+            with engine.begin() as conn:
+                if "crawl_depth" not in cols:
+                    if is_sqlite:
+                        conn.execute(text("ALTER TABLE targets ADD COLUMN crawl_depth INTEGER NOT NULL DEFAULT 0"))
+                    else:
+                        conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS crawl_depth INTEGER NOT NULL DEFAULT 0"))
+                if "use_playwright" not in cols:
+                    if is_sqlite:
+                        conn.execute(text("ALTER TABLE targets ADD COLUMN use_playwright INTEGER NOT NULL DEFAULT 0"))
+                    else:
+                        conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS use_playwright INTEGER NOT NULL DEFAULT 0"))
 
 
 def init_db():
