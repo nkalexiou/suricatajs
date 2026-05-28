@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 
 from alerts_obj import Alerts
 from db.database import init_db
+from webhooks.delivery import deliver_webhook
 from suricatajs_obj import SuricataJSObject
 from scanner.discovery import discover_urls
 from scanner.playwright_scanner import get_page_scripts
@@ -64,11 +65,13 @@ def _scan_external_script(script_url: str):
             alert = Alerts(script_url, stored_checksum, suricata_js.checksum, diff=diff, sri=sri)
             logger.warning(alert.missmatch_alert())
             alert.save_to_db()
+            deliver_webhook(alert.to_dict())
             suricata_js.save_to_db()
     else:
         alert = Alerts(script_url, None, None, sri=sri)
         logger.info(alert.new_script_alert())
         alert.save_to_db()
+        deliver_webhook(alert.to_dict())
         suricata_js.save_to_db()
 
 
@@ -91,11 +94,13 @@ def _scan_inline_script(page_url: str, content: str):
             alert = Alerts(synthetic_url, stored_checksum, suricata_js.checksum, diff=diff, sri=sri)
             logger.warning(alert.missmatch_alert())
             alert.save_to_db()
+            deliver_webhook(alert.to_dict())
             suricata_js.save_to_db()
     else:
         alert = Alerts(synthetic_url, None, None, sri=sri)
         logger.info(alert.new_script_alert())
         alert.save_to_db()
+        deliver_webhook(alert.to_dict())
         suricata_js.save_to_db()
 
 
