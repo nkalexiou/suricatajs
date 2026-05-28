@@ -104,6 +104,16 @@ def _migrate_db():
                     else:
                         conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS use_playwright INTEGER NOT NULL DEFAULT 0"))
 
+    # --- alerts table migration (v3: add sri column) ---
+    if "alerts" in existing_tables:
+        cols = {c["name"] for c in insp.get_columns("alerts")}
+        if "sri" not in cols:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN sri TEXT"))
+                else:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN IF NOT EXISTS sri TEXT"))
+
 
 def init_db():
     _migrate_db()
@@ -127,7 +137,8 @@ def init_db():
                 date TEXT,
                 alert_msg TEXT,
                 alert_type TEXT,
-                diff TEXT
+                diff TEXT,
+                sri TEXT
             )
         """))
         conn.execute(text(f"""

@@ -11,6 +11,7 @@ class AlertResponse(BaseModel):
     alert_msg: str
     alert_type: str
     diff: Optional[str] = None
+    sri: Optional[str] = None
 
 
 class DiffResponse(BaseModel):

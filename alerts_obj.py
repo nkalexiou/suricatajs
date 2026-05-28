@@ -4,7 +4,7 @@ from db.database import get_connection
 
 
 class Alerts:
-    def __init__(self, javascript, stored_checksum, new_checksum, date=None, diff=None):
+    def __init__(self, javascript, stored_checksum, new_checksum, date=None, diff=None, sri=None):
         self.javascript = javascript
         self.stored_checksum = stored_checksum
         self.new_checksum = new_checksum
@@ -14,6 +14,7 @@ class Alerts:
         else:
             self.date = date
         self.diff = diff
+        self.sri = sri
         self.alert_msg = None
         self.alert_type = None
 
@@ -21,8 +22,8 @@ class Alerts:
         with get_connection() as conn:
             conn.execute(
                 text("INSERT INTO alerts "
-                     "(javascript, stored_checksum, new_checksum, date, alert_msg, alert_type, diff) "
-                     "VALUES (:javascript, :stored_checksum, :new_checksum, :date, :alert_msg, :alert_type, :diff)"),
+                     "(javascript, stored_checksum, new_checksum, date, alert_msg, alert_type, diff, sri) "
+                     "VALUES (:javascript, :stored_checksum, :new_checksum, :date, :alert_msg, :alert_type, :diff, :sri)"),
                 {
                     "javascript": self.javascript,
                     "stored_checksum": self.stored_checksum,
@@ -31,8 +32,21 @@ class Alerts:
                     "alert_msg": self.alert_msg,
                     "alert_type": self.alert_type,
                     "diff": self.diff,
+                    "sri": self.sri,
                 },
             )
+
+    def to_dict(self) -> dict:
+        return {
+            "alert_type": self.alert_type,
+            "javascript": self.javascript,
+            "stored_checksum": self.stored_checksum,
+            "new_checksum": self.new_checksum,
+            "date": self.date,
+            "alert_msg": self.alert_msg,
+            "diff": self.diff,
+            "sri": self.sri,
+        }
 
     def missmatch_alert(self):
         self.alert_msg = (

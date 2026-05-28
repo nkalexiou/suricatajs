@@ -1,6 +1,7 @@
 """
 Main suricatajs file. Scanner logic lives in check() and check_target().
 """
+import base64
 import difflib
 import hashlib
 import logging
@@ -34,6 +35,11 @@ def configure_logger(log_file):
     logger.addHandler(console_handler)
 
 
+def _compute_sri(content: str) -> str:
+    digest = hashlib.sha384(content.encode("utf-8")).digest()
+    return "sha384-" + base64.b64encode(digest).decode("ascii")
+
+
 def _compute_diff(old_js: str, new_js: str) -> str:
     lines = difflib.unified_diff(
         old_js.splitlines(keepends=True),
@@ -49,17 +55,18 @@ def _scan_external_script(script_url: str):
     jssource = requests.get(script_url, timeout=30).text
     suricata_js = SuricataJSObject(script_url, jssource)
     is_match, stored_checksum = suricata_js.compare_with_db()
+    sri = _compute_sri(jssource)
 
     if stored_checksum is not None:
         if not is_match:
             stored_js = suricata_js.get_stored_javascript()
             diff = _compute_diff(stored_js, jssource)
-            alert = Alerts(script_url, stored_checksum, suricata_js.checksum, diff=diff)
+            alert = Alerts(script_url, stored_checksum, suricata_js.checksum, diff=diff, sri=sri)
             logger.warning(alert.missmatch_alert())
             alert.save_to_db()
             suricata_js.save_to_db()
     else:
-        alert = Alerts(script_url, None, None)
+        alert = Alerts(script_url, None, None, sri=sri)
         logger.info(alert.new_script_alert())
         alert.save_to_db()
         suricata_js.save_to_db()
@@ -72,6 +79,7 @@ def _scan_inline_script(page_url: str, content: str):
     script_id = hashlib.sha256(content.encode()).hexdigest()[:16]
     synthetic_url = f"{page_url}#inline-{script_id}"
     logger.info(f"Processing inline script {synthetic_url}")
+    sri = _compute_sri(content)
 
     suricata_js = SuricataJSObject(synthetic_url, content)
     is_match, stored_checksum = suricata_js.compare_with_db()
@@ -80,12 +88,12 @@ def _scan_inline_script(page_url: str, content: str):
         if not is_match:
             stored_js = suricata_js.get_stored_javascript()
             diff = _compute_diff(stored_js, content)
-            alert = Alerts(synthetic_url, stored_checksum, suricata_js.checksum, diff=diff)
+            alert = Alerts(synthetic_url, stored_checksum, suricata_js.checksum, diff=diff, sri=sri)
             logger.warning(alert.missmatch_alert())
             alert.save_to_db()
             suricata_js.save_to_db()
     else:
-        alert = Alerts(synthetic_url, None, None)
+        alert = Alerts(synthetic_url, None, None, sri=sri)
         logger.info(alert.new_script_alert())
         alert.save_to_db()
         suricata_js.save_to_db()

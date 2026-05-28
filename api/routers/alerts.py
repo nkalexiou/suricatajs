@@ -14,7 +14,7 @@ def get_alerts(
     javascript: Optional[str] = Query(None),
     date: Optional[str] = Query(None),
 ):
-    query = ("SELECT id, javascript, stored_checksum, new_checksum, date, alert_msg, alert_type, diff "
+    query = ("SELECT id, javascript, stored_checksum, new_checksum, date, alert_msg, alert_type, diff, sri "
              "FROM alerts")
     conditions, params = [], {}
 
@@ -44,6 +44,7 @@ def get_alerts(
             alert_msg=r[5],
             alert_type=r[6],
             diff=r[7],
+            sri=r[8],
         )
         for r in rows
     ]
