@@ -230,3 +230,41 @@ def test_check_target_with_playwright_creates_alerts(isolated_db, local_server):
     assert len(alerts) > 0
     types = {a[0] for a in alerts}
     assert "new_script" in types
+
+
+def test_metrics_endpoint_accessible(client):
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "suricatajs_scripts_total" in response.text
+
+
+def test_scan_produces_sri_in_alerts(isolated_db, local_server):
+    from run import check_target
+    check_target({"url": local_server + "/"})
+
+    from db.database import get_engine
+    from sqlalchemy import text
+    with get_engine().connect() as conn:
+        rows = conn.execute(text("SELECT sri FROM alerts")).fetchall()
+
+    assert len(rows) > 0
+    for row in rows:
+        assert row[0] is not None
+        assert row[0].startswith("sha384-")
+
+
+def test_webhook_fires_on_scan(isolated_db, local_server, monkeypatch):
+    monkeypatch.setenv("WEBHOOK_URL", "https://hooks.example.com/notify")
+    from unittest.mock import patch, MagicMock
+    ok_resp = MagicMock(status_code=200)
+    ok_resp.raise_for_status.return_value = None
+
+    with patch("webhooks.delivery.requests.post", return_value=ok_resp) as mock_post:
+        from run import check_target
+        check_target({"url": local_server + "/"})
+
+    assert mock_post.call_count > 0
+    payload = mock_post.call_args_list[0][1]["json"]
+    assert "alert_type" in payload
+    assert "javascript" in payload
+    assert "sri" in payload
