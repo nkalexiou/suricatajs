@@ -21,6 +21,16 @@ def test_get_alerts_requires_api_key(client):
     assert response.status_code == 401
 
 
+def test_get_alerts_rejects_when_api_keys_not_configured(monkeypatch):
+    monkeypatch.delenv("API_KEYS", raising=False)
+    from api.main import create_app
+    from fastapi.testclient import TestClient
+    c = TestClient(create_app())
+    response = c.get("/alerts")
+    assert response.status_code == 401
+    assert "API_KEYS" in response.json()["detail"]
+
+
 def test_get_alerts_empty(client, auth_headers):
     response = client.get("/alerts", headers=auth_headers)
     assert response.status_code == 200
