@@ -29,7 +29,15 @@ function formatScanTime(raw: string | null): string {
 export function UrlAccordion({ target, alerts, onDeleted }: Props) {
   const [open, setOpen] = useState(false)
   const deleteTarget = useDeleteTarget()
-  const openAlerts = alerts.filter((a) => !a.resolved)
+  const openAlerts = alerts.filter((a) => {
+    if (a.resolved) return false
+    if (a.source_page) return a.source_page === target.url
+    try {
+      return new URL(a.javascript).hostname === new URL(target.url).hostname
+    } catch {
+      return a.javascript.startsWith(target.url)
+    }
+  })
   const scanned = formatScanTime(target.last_scanned_at)
   const neverScanned = !target.last_scanned_at
 

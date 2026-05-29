@@ -154,8 +154,10 @@ def test_approve_alert_updates_baseline(client, admin_cookie):
     assert row[0] == "newhash"
 
 
-def test_approve_alert_with_no_new_checksum_returns_400(client, admin_cookie):
+def test_approve_new_script_alert_marks_resolved(client, admin_cookie):
+    """new_script alerts have no new_checksum; approving them marks resolved without touching baseline."""
     _seed_alert("https://example.com/new.js", "new_script")
     alert_id = client.get("/alerts", cookies=admin_cookie).json()[0]["id"]
     response = client.patch(f"/alerts/{alert_id}/approve", cookies=admin_cookie)
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert response.json()["resolved"] is True
