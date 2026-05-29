@@ -1,11 +1,11 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
-from api.auth import require_api_key
+from api.auth import require_any_auth
 from api.models import AlertResponse, DiffResponse
 from db.database import get_connection
 
-router = APIRouter(prefix="/alerts", dependencies=[Depends(require_api_key)])
+router = APIRouter(prefix="/alerts", dependencies=[Depends(require_any_auth)])
 
 
 @router.get("", response_model=List[AlertResponse])

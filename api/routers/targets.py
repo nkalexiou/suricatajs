@@ -6,13 +6,13 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import text
 
-from api.auth import require_api_key
+from api.auth import require_any_auth
 from api.models import ApproveRequest, TargetCreate, TargetResponse
 from db.database import get_connection
 
 logger = logging.getLogger("suricatajs")
 
-router = APIRouter(prefix="/targets", dependencies=[Depends(require_api_key)])
+router = APIRouter(prefix="/targets", dependencies=[Depends(require_any_auth)])
 
 
 def _row_to_target(r) -> TargetResponse:
