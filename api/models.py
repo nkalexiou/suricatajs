@@ -12,6 +12,9 @@ class AlertResponse(BaseModel):
     alert_type: str
     diff: Optional[str] = None
     sri: Optional[str] = None
+    resolved: bool = False
+    resolved_at: Optional[str] = None
+    resolved_by: Optional[int] = None
 
 
 class DiffResponse(BaseModel):
