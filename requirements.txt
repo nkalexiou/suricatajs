@@ -20,7 +20,7 @@ playwright==1.49.0
 
 # Auth
 PyJWT==2.13.0
-bcrypt==4.2.1
+bcrypt==5.0.0
 
 # API
 fastapi==0.115.5
