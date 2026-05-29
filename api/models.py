@@ -46,3 +46,21 @@ class TargetResponse(BaseModel):
 
 class ApproveRequest(BaseModel):
     note: Optional[str] = None
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    name: str
+    role: str
+    created_at: str
+
+
+class PatchMeRequest(BaseModel):
+    name: Optional[str] = None
+    password: Optional[str] = None
