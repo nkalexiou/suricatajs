@@ -64,3 +64,10 @@ class UserResponse(BaseModel):
 class PatchMeRequest(BaseModel):
     name: Optional[str] = None
     password: Optional[str] = None
+
+
+class UserCreate(BaseModel):
+    email: str
+    name: str
+    password: str
+    role: str = "operator"
