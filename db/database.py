@@ -1,4 +1,5 @@
 import os
+import secrets
 import threading
 from contextlib import contextmanager
 from sqlalchemy import create_engine, inspect as sa_inspect, text
@@ -114,6 +115,65 @@ def _migrate_db():
                 else:
                     conn.execute(text("ALTER TABLE alerts ADD COLUMN IF NOT EXISTS sri TEXT"))
 
+    # --- alerts table migration (v4: add resolved columns) ---
+    if "alerts" in existing_tables:
+        cols = {c["name"] for c in insp.get_columns("alerts")}
+        with engine.begin() as conn:
+            if "resolved" not in cols:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN resolved INTEGER NOT NULL DEFAULT 0"))
+                else:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN IF NOT EXISTS resolved INTEGER NOT NULL DEFAULT 0"))
+            if "resolved_at" not in cols:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN resolved_at TEXT"))
+                else:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN IF NOT EXISTS resolved_at TEXT"))
+            if "resolved_by" not in cols:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN resolved_by INTEGER"))
+                else:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN IF NOT EXISTS resolved_by INTEGER"))
+
+    # --- targets table migration (v4: add domain_id) ---
+    if "targets" in existing_tables:
+        cols = {c["name"] for c in insp.get_columns("targets")}
+        if "domain_id" not in cols:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE targets ADD COLUMN domain_id INTEGER"))
+                else:
+                    conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS domain_id INTEGER"))
+
+
+def _bootstrap_admin():
+    """Create initial admin user on first startup. No-op if users exist."""
+    import logging
+    logger = logging.getLogger("suricatajs")
+    engine = get_engine()
+    with engine.connect() as conn:
+        count = conn.execute(text("SELECT COUNT(*) FROM users")).scalar()
+    if count > 0:
+        return
+    import bcrypt as _bcrypt
+    import datetime
+    password = secrets.token_urlsafe(10)
+    password_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
+    now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    with engine.begin() as conn:
+        conn.execute(
+            text("INSERT INTO users (email, name, password_hash, role, created_at) "
+                 "VALUES (:email, :name, :hash, :role, :created_at)"),
+            {"email": "admin@localhost", "name": "Admin",
+             "hash": password_hash, "role": "admin", "created_at": now},
+        )
+    border = "=" * 60
+    logger.warning(border)
+    logger.warning(f"Admin password (one-time): {password}")
+    logger.warning("Login: http://localhost:8085  |  user: admin@localhost")
+    logger.warning("Change this password under Profile after first login.")
+    logger.warning(border)
+
 
 def init_db():
     _migrate_db()
@@ -138,7 +198,10 @@ def init_db():
                 alert_msg TEXT,
                 alert_type TEXT,
                 diff TEXT,
-                sri TEXT
+                sri TEXT,
+                resolved INTEGER NOT NULL DEFAULT 0,
+                resolved_at TEXT,
+                resolved_by INTEGER
             )
         """))
         conn.execute(text(f"""
@@ -154,6 +217,25 @@ def init_db():
                 approved_at TEXT,
                 created_at TEXT NOT NULL,
                 crawl_depth INTEGER NOT NULL DEFAULT 0,
-                use_playwright INTEGER NOT NULL DEFAULT 0
+                use_playwright INTEGER NOT NULL DEFAULT 0,
+                domain_id INTEGER
             )
         """))
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS users (
+                id {pk},
+                email TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'operator',
+                created_at TEXT NOT NULL
+            )
+        """))
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS domains (
+                id {pk},
+                domain TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL
+            )
+        """))
+    _bootstrap_admin()

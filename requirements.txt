@@ -16,7 +16,7 @@ playwright==1.49.0
 
 # Auth
 PyJWT==2.9.0
-passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
 
 # API
 fastapi==0.115.5
