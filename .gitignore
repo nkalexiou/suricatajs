@@ -140,3 +140,6 @@ suricata_venv/
 surikatajs.db
 suricatajs.db
 app.log.*
+ui/dist/
+ui/node_modules/
+.superpowers/
