@@ -71,3 +71,13 @@ class UserCreate(BaseModel):
     name: str
     password: str
     role: str = "operator"
+
+
+class DomainCreate(BaseModel):
+    domain: str
+
+
+class DomainResponse(BaseModel):
+    id: int
+    domain: str
+    created_at: str
