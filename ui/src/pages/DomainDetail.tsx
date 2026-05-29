@@ -132,7 +132,18 @@ export function DomainDetail() {
             </Button>
           </div>
           {targets.length === 0 && (
-            <div className="text-slate-500 text-sm py-8 text-center">No URLs yet. Add one to start monitoring.</div>
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+              <div className="text-slate-400 text-sm font-medium">No URLs added yet</div>
+              <p className="text-slate-600 text-xs max-w-xs leading-relaxed">
+                Add a target URL to start monitoring. The scanner will check its scripts on every run and alert you when anything changes.
+              </p>
+              <button
+                onClick={() => setShowAddUrl(true)}
+                className="mt-1 px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs transition-colors"
+              >
+                + Add first URL
+              </button>
+            </div>
           )}
           {targets.map((target) => (
             <UrlAccordion

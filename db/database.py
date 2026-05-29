@@ -145,6 +145,16 @@ def _migrate_db():
                 else:
                     conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS domain_id INTEGER"))
 
+    # --- targets table migration (v5: add last_scanned_at) ---
+    if "targets" in existing_tables:
+        cols = {c["name"] for c in insp.get_columns("targets")}
+        if "last_scanned_at" not in cols:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE targets ADD COLUMN last_scanned_at TEXT"))
+                else:
+                    conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS last_scanned_at TEXT"))
+
 
 def _bootstrap_admin():
     """Create initial admin user on first startup. No-op if users exist."""
@@ -218,7 +228,8 @@ def init_db():
                 created_at TEXT NOT NULL,
                 crawl_depth INTEGER NOT NULL DEFAULT 0,
                 use_playwright INTEGER NOT NULL DEFAULT 0,
-                domain_id INTEGER
+                domain_id INTEGER,
+                last_scanned_at TEXT
             )
         """))
         conn.execute(text(f"""

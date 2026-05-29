@@ -16,7 +16,7 @@ router = APIRouter(prefix="/targets", dependencies=[Depends(require_any_auth)])
 
 _TARGET_SELECT = ("SELECT id, url, name, tags, owner, scan_interval_minutes, "
                   "approved_checksum, approval_note, approved_at, created_at, "
-                  "crawl_depth, use_playwright, domain_id FROM targets")
+                  "crawl_depth, use_playwright, domain_id, last_scanned_at FROM targets")
 
 
 def _row_to_target(r) -> TargetResponse:
@@ -34,6 +34,7 @@ def _row_to_target(r) -> TargetResponse:
         crawl_depth=r[10] if r[10] is not None else 0,
         use_playwright=bool(r[11]) if r[11] is not None else False,
         domain_id=r[12],
+        last_scanned_at=r[13],
     )
 
 

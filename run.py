@@ -106,6 +106,10 @@ def _scan_inline_script(page_url: str, content: str):
 
 def check_target(target: dict):
     """Scan a single target page URL for all its scripts."""
+    import datetime
+    from db.database import get_connection
+    from sqlalchemy import text as _text
+
     targeturl = target["url"]
     crawl_depth = target.get("crawl_depth") or 0
     use_playwright = bool(target.get("use_playwright"))
@@ -119,6 +123,16 @@ def check_target(target: dict):
             _scan_page_with_playwright(page_url)
         else:
             _scan_page_with_requests(page_url)
+
+    now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    try:
+        with get_connection() as conn:
+            conn.execute(
+                _text("UPDATE targets SET last_scanned_at = :ts WHERE url = :url"),
+                {"ts": now, "url": targeturl},
+            )
+    except Exception:
+        logger.exception(f"Failed to update last_scanned_at for {targeturl}")
 
 
 def _scan_page_with_requests(page_url: str):

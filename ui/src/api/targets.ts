@@ -12,6 +12,7 @@ export interface Target {
   created_at: string
   approved_checksum: string | null
   approved_at: string | null
+  last_scanned_at: string | null
 }
 
 export interface TargetCreate {

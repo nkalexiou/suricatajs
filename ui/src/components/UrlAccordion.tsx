@@ -12,10 +12,26 @@ interface Props {
   onDeleted: () => void
 }
 
+function formatScanTime(raw: string | null): string {
+  if (!raw) return 'No scan yet'
+  // raw format: "20250529_161234" → parse as local time
+  const m = raw.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})$/)
+  if (!m) return raw
+  const d = new Date(
+    parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]),
+    parseInt(m[4]), parseInt(m[5]), parseInt(m[6])
+  )
+  return d.toLocaleString(undefined, {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  })
+}
+
 export function UrlAccordion({ target, alerts, onDeleted }: Props) {
   const [open, setOpen] = useState(false)
   const deleteTarget = useDeleteTarget()
   const openAlerts = alerts.filter((a) => !a.resolved)
+  const scanned = formatScanTime(target.last_scanned_at)
+  const neverScanned = !target.last_scanned_at
 
   async function handleDelete() {
     if (!confirm(`Remove ${target.url}?`)) return
@@ -30,7 +46,12 @@ export function UrlAccordion({ target, alerts, onDeleted }: Props) {
         onClick={() => setOpen((o) => !o)}
       >
         <span className="text-slate-500 text-xs w-3">{open ? '▼' : '▶'}</span>
-        <span className="font-mono text-sm text-slate-300 flex-1 truncate">{target.url}</span>
+        <div className="flex-1 min-w-0">
+          <div className="font-mono text-sm text-slate-300 truncate">{target.url}</div>
+          <div className={`text-[10px] mt-0.5 ${neverScanned ? 'text-slate-600 italic' : 'text-slate-500'}`}>
+            Last scan: {scanned}
+          </div>
+        </div>
         <div className="flex items-center gap-2 shrink-0">
           <Badge className="bg-slate-800 text-slate-400 text-[10px]">
             {target.use_playwright ? 'Browser' : 'Standard'}

@@ -47,6 +47,7 @@ class TargetResponse(BaseModel):
     crawl_depth: int = 0
     use_playwright: bool = False
     domain_id: Optional[int] = None
+    last_scanned_at: Optional[str] = None
 
 
 class ApproveRequest(BaseModel):
