@@ -131,8 +131,16 @@ dmypy.json
 #virtual environment
 suricata_venv/
 
+# UI source lib (lib/ is ignored globally for Python packaging)
+!ui/src/lib/
+!ui/src/lib/**
+
 #others
 .DS_Store
 surikatajs.db
 suricatajs.db
+db/*.db
 app.log.*
+ui/dist/
+ui/node_modules/
+.superpowers/

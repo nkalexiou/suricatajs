@@ -15,6 +15,7 @@ class AlertResponse(BaseModel):
     resolved: bool = False
     resolved_at: Optional[str] = None
     resolved_by: Optional[int] = None
+    source_page: Optional[str] = None
 
 
 class DiffResponse(BaseModel):
@@ -47,6 +48,7 @@ class TargetResponse(BaseModel):
     crawl_depth: int = 0
     use_playwright: bool = False
     domain_id: Optional[int] = None
+    last_scanned_at: Optional[str] = None
 
 
 class ApproveRequest(BaseModel):

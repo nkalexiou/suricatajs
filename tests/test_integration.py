@@ -71,7 +71,7 @@ def isolated_db(tmp_path, monkeypatch):
 
 
 def test_first_scan_creates_new_script_alerts(isolated_db, local_server):
-    from run import check_target
+    from scanner.engine import check_target
     check_target({"url": local_server + "/"})
 
     from db.database import get_engine
@@ -85,7 +85,7 @@ def test_first_scan_creates_new_script_alerts(isolated_db, local_server):
 
 
 def test_second_scan_no_new_alerts(isolated_db, local_server):
-    from run import check_target
+    from scanner.engine import check_target
     url = local_server + "/"
     check_target({"url": url})
 
@@ -104,7 +104,7 @@ def test_second_scan_no_new_alerts(isolated_db, local_server):
 
 
 def test_alerts_have_id_and_correct_schema(isolated_db, local_server):
-    from run import check_target
+    from scanner.engine import check_target
     check_target({"url": local_server + "/"})
 
     from db.database import get_engine
@@ -123,7 +123,7 @@ def test_alerts_have_id_and_correct_schema(isolated_db, local_server):
 
 
 def test_api_returns_alerts_after_scan(isolated_db, local_server):
-    from run import check_target
+    from scanner.engine import check_target
     check_target({"url": local_server + "/"})
 
     from fastapi.testclient import TestClient
@@ -141,7 +141,7 @@ def test_api_returns_alerts_after_scan(isolated_db, local_server):
 
 
 def test_inline_scripts_detected(isolated_db, local_server):
-    from run import check_target
+    from scanner.engine import check_target
     check_target({"url": local_server + "/"})
 
     from db.database import get_engine
@@ -208,7 +208,7 @@ def test_crawl_depth_1_discovers_subpages(isolated_db, local_server):
 
 
 def test_check_target_with_crawl_depth_1_creates_alerts(isolated_db, local_server):
-    from run import check_target
+    from scanner.engine import check_target
     check_target({"url": local_server + "/", "crawl_depth": 1, "use_playwright": False})
 
     from db.database import get_engine
@@ -219,7 +219,7 @@ def test_check_target_with_crawl_depth_1_creates_alerts(isolated_db, local_serve
 
 
 def test_check_target_with_playwright_creates_alerts(isolated_db, local_server):
-    from run import check_target
+    from scanner.engine import check_target
     check_target({"url": local_server + "/", "crawl_depth": 0, "use_playwright": True})
 
     from db.database import get_engine
@@ -239,7 +239,7 @@ def test_metrics_endpoint_accessible(client):
 
 
 def test_scan_produces_sri_in_alerts(isolated_db, local_server):
-    from run import check_target
+    from scanner.engine import check_target
     check_target({"url": local_server + "/"})
 
     from db.database import get_engine
@@ -260,7 +260,7 @@ def test_webhook_fires_on_scan(isolated_db, local_server, monkeypatch):
     ok_resp.raise_for_status.return_value = None
 
     with patch("webhooks.delivery.requests.post", return_value=ok_resp) as mock_post:
-        from run import check_target
+        from scanner.engine import check_target
         check_target({"url": local_server + "/"})
 
     assert mock_post.call_count > 0

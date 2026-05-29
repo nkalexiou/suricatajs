@@ -145,6 +145,26 @@ def _migrate_db():
                 else:
                     conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS domain_id INTEGER"))
 
+    # --- targets table migration (v5: add last_scanned_at) ---
+    if "targets" in existing_tables:
+        cols = {c["name"] for c in insp.get_columns("targets")}
+        if "last_scanned_at" not in cols:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE targets ADD COLUMN last_scanned_at TEXT"))
+                else:
+                    conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS last_scanned_at TEXT"))
+
+    # --- alerts table migration (v6: add source_page) ---
+    if "alerts" in existing_tables:
+        cols = {c["name"] for c in insp.get_columns("alerts")}
+        if "source_page" not in cols:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN source_page TEXT"))
+                else:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN IF NOT EXISTS source_page TEXT"))
+
 
 def _bootstrap_admin():
     """Create initial admin user on first startup. No-op if users exist."""
@@ -201,7 +221,8 @@ def init_db():
                 sri TEXT,
                 resolved INTEGER NOT NULL DEFAULT 0,
                 resolved_at TEXT,
-                resolved_by INTEGER
+                resolved_by INTEGER,
+                source_page TEXT
             )
         """))
         conn.execute(text(f"""
@@ -218,7 +239,8 @@ def init_db():
                 created_at TEXT NOT NULL,
                 crawl_depth INTEGER NOT NULL DEFAULT 0,
                 use_playwright INTEGER NOT NULL DEFAULT 0,
-                domain_id INTEGER
+                domain_id INTEGER,
+                last_scanned_at TEXT
             )
         """))
         conn.execute(text(f"""
