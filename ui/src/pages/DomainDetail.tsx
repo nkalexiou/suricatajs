@@ -8,7 +8,6 @@ import { UrlAccordion } from '@/components/UrlAccordion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 
 function AlertRow({ alert, onResolve, onApprove }: {
@@ -72,6 +71,7 @@ export function DomainDetail() {
   const createTarget = useCreateTarget()
   const resolveAlert = useResolveAlert()
   const approveAlert = useApproveAlert()
+  const [activeTab, setActiveTab] = useState<'urls' | 'log'>('urls')
   const [showAddUrl, setShowAddUrl] = useState(false)
   const [newUrl, setNewUrl] = useState('')
   const [urlError, setUrlError] = useState('')
@@ -119,13 +119,27 @@ export function DomainDetail() {
         <span className="text-amber-400 font-semibold">{openDomainCount} open alerts</span>
       </div>
 
-      <Tabs defaultValue="urls">
-        <TabsList className="bg-slate-800 mb-4">
-          <TabsTrigger value="urls">Target URLs &amp; Scripts</TabsTrigger>
-          <TabsTrigger value="log">Detection Log</TabsTrigger>
-        </TabsList>
+      {/* Tab bar */}
+      <div className="flex border-b border-slate-700 mb-5 gap-6">
+        {([
+          { id: 'urls', label: 'Target URLs & Scripts' },
+          { id: 'log',  label: 'Detection Log' },
+        ] as const).map(({ id, label }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`pb-2 text-sm font-medium transition-colors whitespace-nowrap ${
+              activeTab === id
+                ? 'border-b-2 border-indigo-400 text-indigo-300'
+                : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-        <TabsContent value="urls">
+        {activeTab === 'urls' && (<div>
           <div className="flex justify-end mb-3">
             <Button size="sm" onClick={() => setShowAddUrl(true)} className="bg-indigo-600 hover:bg-indigo-700">
               + Add URL
@@ -153,9 +167,9 @@ export function DomainDetail() {
               onDeleted={() => refetchTargets()}
             />
           ))}
-        </TabsContent>
+        </div>)}
 
-        <TabsContent value="log">
+        {activeTab === 'log' && (<div>
           <div className="flex gap-2 mb-3 flex-wrap items-center">
             <Input
               placeholder="Search script, date…"
@@ -206,8 +220,7 @@ export function DomainDetail() {
           <p className="text-[10px] text-slate-600 italic mt-2">
             Dismiss &amp; Approve — expected change, updates baseline. | Resolve — incident handled, baseline unchanged.
           </p>
-        </TabsContent>
-      </Tabs>
+        </div>)}
 
       <Dialog open={showAddUrl} onOpenChange={setShowAddUrl}>
         <DialogContent className="bg-[#161625] border-slate-700">

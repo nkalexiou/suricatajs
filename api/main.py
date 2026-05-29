@@ -1,6 +1,7 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from api.routers import alerts, auth, domains, health, metrics, targets, users
 from db.database import init_db
@@ -12,6 +13,15 @@ async def lifespan(app: FastAPI):
     yield
 
 
+# Paths that exist in both the API and the SPA router.
+# When a browser refreshes on these paths it sends Accept: text/html —
+# we must serve index.html so the React router handles the route, not the API.
+_SPA_OVERLAP_PATHS = frozenset({
+    "/alerts", "/metrics", "/profile", "/login",
+    "/admin/users",
+})
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="SuricataJS",
@@ -19,7 +29,23 @@ def create_app() -> FastAPI:
         description="JavaScript integrity monitoring API",
         lifespan=lifespan,
     )
-    # API routers — registered before StaticFiles so they take priority
+
+    ui_dist = os.path.join(os.path.dirname(__file__), "..", "ui", "dist")
+    index_path = os.path.join(ui_dist, "index.html")
+
+    @app.middleware("http")
+    async def spa_browser_fallback(request: Request, call_next):
+        """Return index.html for browser page-refreshes on SPA routes."""
+        path = request.url.path
+        accept = request.headers.get("accept", "")
+        is_browser = "text/html" in accept
+        is_spa_path = path in _SPA_OVERLAP_PATHS or path.startswith("/domains/")
+        if request.method == "GET" and is_browser and is_spa_path and os.path.isfile(index_path):
+            return FileResponse(index_path)
+        return await call_next(request)
+
+    # API routers — registered after middleware so API paths still resolve for
+    # non-browser clients (Prometheus, curl, fetch()).
     app.include_router(health.router)
     app.include_router(metrics.router)
     app.include_router(auth.router)
@@ -28,8 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(users.router)
     app.include_router(domains.router)
 
-    # SPA — only mount if ui/dist exists (not present during tests or dev without build)
-    ui_dist = os.path.join(os.path.dirname(__file__), "..", "ui", "dist")
+    # SPA static files — serves assets (JS/CSS) and index.html for /
     if os.path.isdir(ui_dist):
         app.mount("/", StaticFiles(directory=ui_dist, html=True), name="ui")
 
