@@ -139,6 +139,7 @@ suricata_venv/
 .DS_Store
 surikatajs.db
 suricatajs.db
+db/*.db
 app.log.*
 ui/dist/
 ui/node_modules/
