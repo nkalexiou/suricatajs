@@ -7,7 +7,7 @@ logger = logging.getLogger("suricatajs")
 
 
 def start_scheduler(targets_file: str = "targets.txt") -> None:
-    from run import check_target
+    from scanner.engine import check_target
     from scanner.loader import load_targets
 
     scheduler = BlockingScheduler()

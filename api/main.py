@@ -1,3 +1,4 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
@@ -6,11 +7,50 @@ from fastapi.staticfiles import StaticFiles
 from api.routers import alerts, auth, domains, health, metrics, targets, users
 from db.database import init_db
 
+logger = logging.getLogger("suricatajs")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+
+    global_interval = int(os.getenv("SCAN_INTERVAL_MINUTES", "60"))
+    scheduler = None
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from scanner.engine import check_target
+        from scanner.loader import load_targets
+
+        scheduler = BackgroundScheduler()
+        existing_targets = load_targets()
+        for t in existing_targets:
+            interval = t.get("scan_interval_minutes") or global_interval
+            try:
+                scheduler.add_job(
+                    check_target,
+                    "interval",
+                    minutes=interval,
+                    args=[t],
+                    id=f"scan_{t['url']}",
+                    replace_existing=True,
+                )
+            except Exception:
+                logger.exception(f"Failed to schedule {t['url']}")
+        scheduler.start()
+        logger.info(f"Interval scanner started with {len(existing_targets)} target(s).")
+    except Exception:
+        logger.exception("Failed to start background scheduler — interval scanning disabled.")
+
+    app.state.scheduler = scheduler
+    app.state.scan_interval = global_interval
+
     yield
+
+    if scheduler is not None:
+        try:
+            scheduler.shutdown(wait=False)
+        except Exception:
+            pass
 
 
 # Paths that exist in both the API and the SPA router.

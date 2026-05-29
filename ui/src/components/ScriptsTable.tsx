@@ -11,13 +11,15 @@ function deriveScripts(alerts: Alert[], targetUrl: string): ScriptRow[] {
   const rows: ScriptRow[] = []
   for (const alert of alerts) {
     const isInline = alert.javascript.includes('#inline-')
-    const relatedToUrl = (() => {
-      try {
-        return new URL(alert.javascript).hostname === new URL(targetUrl).hostname
-      } catch {
-        return alert.javascript.startsWith(targetUrl)
-      }
-    })()
+    const relatedToUrl = alert.source_page
+      ? alert.source_page === targetUrl
+      : (() => {
+          try {
+            return new URL(alert.javascript).hostname === new URL(targetUrl).hostname
+          } catch {
+            return alert.javascript.startsWith(targetUrl)
+          }
+        })()
     if (!relatedToUrl) continue
     rows.push({
       uri: alert.javascript,

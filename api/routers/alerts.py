@@ -13,7 +13,7 @@ logger = logging.getLogger("suricatajs")
 router = APIRouter(prefix="/alerts", dependencies=[Depends(require_any_auth)])
 
 _SELECT = ("SELECT id, javascript, stored_checksum, new_checksum, date, alert_msg, "
-           "alert_type, diff, sri, resolved, resolved_at, resolved_by FROM alerts")
+           "alert_type, diff, sri, resolved, resolved_at, resolved_by, source_page FROM alerts")
 
 
 def _row_to_alert(r) -> AlertResponse:
@@ -21,6 +21,7 @@ def _row_to_alert(r) -> AlertResponse:
         id=r[0], javascript=r[1], stored_checksum=r[2], new_checksum=r[3],
         date=r[4], alert_msg=r[5], alert_type=r[6], diff=r[7], sri=r[8],
         resolved=bool(r[9]), resolved_at=r[10], resolved_by=r[11],
+        source_page=r[12],
     )
 
 

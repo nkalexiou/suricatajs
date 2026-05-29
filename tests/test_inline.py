@@ -5,7 +5,7 @@ from db.database import get_engine
 
 
 def test_inline_script_creates_new_script_alert(fresh_db):
-    from run import _scan_inline_script
+    from scanner.engine import _scan_inline_script
     _scan_inline_script("https://example.com/", "var x = 1;")
 
     with get_engine().connect() as conn:
@@ -21,7 +21,7 @@ def test_inline_script_creates_new_script_alert(fresh_db):
 
 
 def test_inline_script_same_content_no_duplicate_alert(fresh_db):
-    from run import _scan_inline_script
+    from scanner.engine import _scan_inline_script
     _scan_inline_script("https://example.com/", "var x = 1;")
     _scan_inline_script("https://example.com/", "var x = 1;")
 
@@ -32,7 +32,7 @@ def test_inline_script_same_content_no_duplicate_alert(fresh_db):
 
 
 def test_inline_script_changed_content_treated_as_new_script(fresh_db):
-    from run import _scan_inline_script
+    from scanner.engine import _scan_inline_script
     _scan_inline_script("https://example.com/", "var x = 1;")
     _scan_inline_script("https://example.com/", "var x = 2;")
 
@@ -44,7 +44,7 @@ def test_inline_script_changed_content_treated_as_new_script(fresh_db):
 
 
 def test_inline_script_empty_content_skipped(fresh_db):
-    from run import _scan_inline_script
+    from scanner.engine import _scan_inline_script
     _scan_inline_script("https://example.com/", "   ")
 
     with get_engine().connect() as conn:
@@ -54,7 +54,7 @@ def test_inline_script_empty_content_skipped(fresh_db):
 
 
 def test_inline_script_whitespace_stripped_before_hashing(fresh_db):
-    from run import _scan_inline_script
+    from scanner.engine import _scan_inline_script
     _scan_inline_script("https://example.com/", "  var x = 1;  ")
     _scan_inline_script("https://example.com/", "var x = 1;")
 
@@ -65,7 +65,7 @@ def test_inline_script_whitespace_stripped_before_hashing(fresh_db):
 
 
 def test_inline_script_synthetic_url_format(fresh_db):
-    from run import _scan_inline_script
+    from scanner.engine import _scan_inline_script
     _scan_inline_script("https://example.com/page", "alert(1)")
 
     with get_engine().connect() as conn:

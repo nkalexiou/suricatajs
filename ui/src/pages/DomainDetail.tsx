@@ -79,11 +79,12 @@ export function DomainDetail() {
   const [search, setSearch] = useState('')
 
   const domainAlerts = [...openAlerts, ...resolvedAlerts].filter((a) => {
-    try {
-      return targets.some((t) =>
-        new URL(t.url).host === new URL(a.javascript).host || a.javascript.startsWith(t.url)
-      )
-    } catch { return false }
+    return targets.some((t) => {
+      if (a.source_page) return a.source_page === t.url
+      try {
+        return new URL(t.url).host === new URL(a.javascript).host || a.javascript.startsWith(t.url)
+      } catch { return false }
+    })
   })
 
   const visibleAlerts = domainAlerts

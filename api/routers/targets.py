@@ -3,7 +3,7 @@ import json
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import text
 
 from api.auth import require_any_auth
@@ -51,9 +51,11 @@ def list_targets(domain_id: Optional[int] = Query(None)):
 
 
 @router.post("", response_model=TargetResponse, status_code=201)
-def create_target(body: TargetCreate):
+def create_target(body: TargetCreate, background_tasks: BackgroundTasks, request: Request):
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     tags_json = json.dumps(body.tags) if body.tags else None
+    crawl_depth = body.crawl_depth if body.crawl_depth is not None else 0
+    use_playwright = bool(body.use_playwright)
     try:
         with get_connection() as conn:
             result = conn.execute(
@@ -66,8 +68,8 @@ def create_target(body: TargetCreate):
                     "tags": tags_json,
                     "owner": body.owner,
                     "interval": body.scan_interval_minutes,
-                    "crawl_depth": body.crawl_depth if body.crawl_depth is not None else 0,
-                    "use_playwright": 1 if body.use_playwright else 0,
+                    "crawl_depth": crawl_depth,
+                    "use_playwright": 1 if use_playwright else 0,
                     "domain_id": body.domain_id,
                     "created_at": now,
                 },
@@ -83,17 +85,57 @@ def create_target(body: TargetCreate):
         raise
     if row is None:
         raise HTTPException(status_code=500, detail="Target created but could not be retrieved")
+
+    target_dict = {"url": body.url, "crawl_depth": crawl_depth, "use_playwright": use_playwright}
+
+    # Trigger an immediate scan in the background
+    try:
+        from scanner.engine import check_target
+        background_tasks.add_task(check_target, target_dict)
+    except Exception:
+        logger.exception(f"Failed to queue immediate scan for {body.url}")
+
+    # Register an interval job in the running scheduler
+    try:
+        scheduler = request.app.state.scheduler
+        if scheduler is not None:
+            from scanner.engine import check_target
+            global_interval = getattr(request.app.state, "scan_interval", 60)
+            interval = body.scan_interval_minutes or global_interval
+            scheduler.add_job(
+                check_target,
+                "interval",
+                minutes=interval,
+                args=[target_dict],
+                id=f"scan_{body.url}",
+                replace_existing=True,
+            )
+    except Exception:
+        logger.exception(f"Failed to schedule interval scan for {body.url}")
+
     return _row_to_target(row)
 
 
 @router.delete("/{target_id}", status_code=204)
-def delete_target(target_id: int):
+def delete_target(target_id: int, request: Request):
     with get_connection() as conn:
+        target_row = conn.execute(
+            text("SELECT url FROM targets WHERE id = :id"), {"id": target_id}
+        ).fetchone()
         result = conn.execute(
             text("DELETE FROM targets WHERE id = :id"), {"id": target_id}
         )
         if result.rowcount == 0:
             raise HTTPException(status_code=404, detail="Target not found")
+
+    if target_row:
+        try:
+            scheduler = request.app.state.scheduler
+            if scheduler is not None:
+                scheduler.remove_job(f"scan_{target_row[0]}")
+        except Exception:
+            pass  # Job may not exist (e.g. if scheduler was restarted)
+
     return Response(status_code=204)
 
 

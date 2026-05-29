@@ -155,6 +155,16 @@ def _migrate_db():
                 else:
                     conn.execute(text("ALTER TABLE targets ADD COLUMN IF NOT EXISTS last_scanned_at TEXT"))
 
+    # --- alerts table migration (v6: add source_page) ---
+    if "alerts" in existing_tables:
+        cols = {c["name"] for c in insp.get_columns("alerts")}
+        if "source_page" not in cols:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN source_page TEXT"))
+                else:
+                    conn.execute(text("ALTER TABLE alerts ADD COLUMN IF NOT EXISTS source_page TEXT"))
+
 
 def _bootstrap_admin():
     """Create initial admin user on first startup. No-op if users exist."""
@@ -211,7 +221,8 @@ def init_db():
                 sri TEXT,
                 resolved INTEGER NOT NULL DEFAULT 0,
                 resolved_at TEXT,
-                resolved_by INTEGER
+                resolved_by INTEGER,
+                source_page TEXT
             )
         """))
         conn.execute(text(f"""

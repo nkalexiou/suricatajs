@@ -88,10 +88,10 @@ def test_run_delivers_webhook_on_new_script(tmp_path, monkeypatch):
     http_ok = MagicMock(status_code=200)
     http_ok.raise_for_status.return_value = None
 
-    with patch("run.requests.get", return_value=mock_resp):
+    with patch("scanner.engine.requests.get", return_value=mock_resp):
         with patch("webhooks.delivery.requests.post", return_value=http_ok) as mock_post:
-            from run import _scan_external_script
-            _scan_external_script("https://a.com/a.js")
+            from scanner.engine import _scan_external_script
+            _scan_external_script("https://a.com/a.js", "https://example.com/")
 
     mock_post.assert_called_once()
     payload = mock_post.call_args[1]["json"]

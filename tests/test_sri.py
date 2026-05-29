@@ -10,7 +10,7 @@ def _sri(content: str) -> str:
 
 
 def test_compute_sri_format():
-    from run import _compute_sri
+    from scanner.engine import _compute_sri
     result = _compute_sri("var x = 1;")
     assert result.startswith("sha384-")
     b64_part = result[len("sha384-"):]
@@ -18,7 +18,7 @@ def test_compute_sri_format():
 
 
 def test_compute_sri_correctness():
-    from run import _compute_sri
+    from scanner.engine import _compute_sri
     content = "var x = 1;"
     assert _compute_sri(content) == _sri(content)
 
@@ -63,9 +63,9 @@ def test_scanner_stores_sri_on_new_script(tmp_path, monkeypatch):
     mock_resp = MagicMock()
     mock_resp.text = js_content
 
-    with patch("run.requests.get", return_value=mock_resp):
-        from run import _scan_external_script
-        _scan_external_script("https://a.com/a.js")
+    with patch("scanner.engine.requests.get", return_value=mock_resp):
+        from scanner.engine import _scan_external_script
+        _scan_external_script("https://a.com/a.js", "https://example.com/")
 
     from db.database import get_engine as ge
     from sqlalchemy import text as sql_text

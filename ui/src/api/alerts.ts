@@ -14,6 +14,7 @@ export interface Alert {
   resolved: boolean
   resolved_at: string | null
   resolved_by: number | null
+  source_page: string | null
 }
 
 export const alertKeys = {

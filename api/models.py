@@ -15,6 +15,7 @@ class AlertResponse(BaseModel):
     resolved: bool = False
     resolved_at: Optional[str] = None
     resolved_by: Optional[int] = None
+    source_page: Optional[str] = None
 
 
 class DiffResponse(BaseModel):
