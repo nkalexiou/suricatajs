@@ -30,6 +30,7 @@ class TargetCreate(BaseModel):
     scan_interval_minutes: Optional[int] = None
     crawl_depth: Optional[int] = 0
     use_playwright: Optional[bool] = False
+    domain_id: Optional[int] = None
 
 
 class TargetResponse(BaseModel):
@@ -45,6 +46,7 @@ class TargetResponse(BaseModel):
     created_at: str
     crawl_depth: int = 0
     use_playwright: bool = False
+    domain_id: Optional[int] = None
 
 
 class ApproveRequest(BaseModel):

@@ -117,3 +117,33 @@ def test_approve_target(client, auth_headers):
 def test_approve_nonexistent_target(client, auth_headers):
     response = client.post("/targets/9999/approve", json={}, headers=auth_headers)
     assert response.status_code == 404
+
+
+def test_create_target_with_domain_id(client, auth_headers):
+    with get_engine().begin() as conn:
+        result = conn.execute(
+            text("INSERT INTO domains (domain, created_at) VALUES ('example.com', '20260529_000000')")
+        )
+        domain_id = result.lastrowid
+    response = client.post(
+        "/targets",
+        json={"url": "https://example.com/", "domain_id": domain_id},
+        headers=auth_headers,
+    )
+    assert response.status_code == 201
+    assert response.json()["domain_id"] == domain_id
+
+
+def test_list_targets_filter_by_domain_id(client, auth_headers):
+    with get_engine().begin() as conn:
+        d1 = conn.execute(
+            text("INSERT INTO domains (domain, created_at) VALUES ('a.com', '20260529_000000')")
+        ).lastrowid
+        d2 = conn.execute(
+            text("INSERT INTO domains (domain, created_at) VALUES ('b.com', '20260529_000000')")
+        ).lastrowid
+    client.post("/targets", json={"url": "https://a.com/", "domain_id": d1}, headers=auth_headers)
+    client.post("/targets", json={"url": "https://b.com/", "domain_id": d2}, headers=auth_headers)
+    data = client.get(f"/targets?domain_id={d1}", headers=auth_headers).json()
+    assert len(data) == 1
+    assert data[0]["domain_id"] == d1
