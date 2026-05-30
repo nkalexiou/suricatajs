@@ -77,9 +77,12 @@ def patch_me(body: PatchMeRequest, current_user: dict = Depends(get_current_user
     if not updates:
         raise HTTPException(status_code=422, detail="Nothing to update")
     with get_connection() as conn:
-        conn.execute(
-            text(f"UPDATE users SET {', '.join(updates)} WHERE id = :id"),
-            params,
-        )
+        if "name" in params and "hash" in params:
+            sql = "UPDATE users SET name = :name, password_hash = :hash WHERE id = :id"
+        elif "name" in params:
+            sql = "UPDATE users SET name = :name WHERE id = :id"
+        else:
+            sql = "UPDATE users SET password_hash = :hash WHERE id = :id"
+        conn.execute(text(sql), params)
     user = _get_user_by_id(current_user["id"])
     return UserResponse(**user)

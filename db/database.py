@@ -68,7 +68,7 @@ def _migrate_db():
             with engine.begin() as conn:
                 if is_sqlite:
                     conn.execute(text("ALTER TABLE alerts RENAME TO _alerts_pre_v2"))
-                    conn.execute(text(f"""
+                    _v2_alerts_ddl = f"""
                         CREATE TABLE alerts (
                             id {pk},
                             javascript TEXT,
@@ -79,7 +79,8 @@ def _migrate_db():
                             alert_type TEXT,
                             diff TEXT
                         )
-                    """))
+                    """
+                    conn.execute(text(_v2_alerts_ddl))  # nosemgrep: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text
                     conn.execute(text("""
                         INSERT INTO alerts (javascript, stored_checksum, new_checksum, date, alert_msg, alert_type)
                         SELECT javascript, stored_checksum, new_checksum, date, alert_msg, alert_type
@@ -208,7 +209,8 @@ def init_db():
                 date TEXT
             )
         """))
-        conn.execute(text(f"""  # nosemgrep: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text
+        # {pk} is a controlled internal constant (SQLite vs Postgres PK syntax), not user input.
+        _alerts_ddl = f"""
             CREATE TABLE IF NOT EXISTS alerts (
                 id {pk},
                 javascript TEXT,
@@ -224,8 +226,9 @@ def init_db():
                 resolved_by INTEGER,
                 source_page TEXT
             )
-        """))
-        conn.execute(text(f"""  # nosemgrep: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text
+        """
+        conn.execute(text(_alerts_ddl))  # nosemgrep: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text
+        _targets_ddl = f"""
             CREATE TABLE IF NOT EXISTS targets (
                 id {pk},
                 url TEXT NOT NULL UNIQUE,
@@ -242,8 +245,9 @@ def init_db():
                 domain_id INTEGER,
                 last_scanned_at TEXT
             )
-        """))
-        conn.execute(text(f"""
+        """
+        conn.execute(text(_targets_ddl))  # nosemgrep: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text
+        _users_ddl = f"""
             CREATE TABLE IF NOT EXISTS users (
                 id {pk},
                 email TEXT NOT NULL UNIQUE,
@@ -252,12 +256,14 @@ def init_db():
                 role TEXT NOT NULL DEFAULT 'operator',
                 created_at TEXT NOT NULL
             )
-        """))
-        conn.execute(text(f"""
+        """
+        conn.execute(text(_users_ddl))  # nosemgrep: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text
+        _domains_ddl = f"""
             CREATE TABLE IF NOT EXISTS domains (
                 id {pk},
                 domain TEXT NOT NULL UNIQUE,
                 created_at TEXT NOT NULL
             )
-        """))
+        """
+        conn.execute(text(_domains_ddl))  # nosemgrep: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text
     _bootstrap_admin()
