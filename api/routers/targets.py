@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 from typing import List, Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import text
@@ -52,6 +53,9 @@ def list_targets(domain_id: Optional[int] = Query(None)):
 
 @router.post("", response_model=TargetResponse, status_code=201)
 def create_target(body: TargetCreate, background_tasks: BackgroundTasks, request: Request):
+    parsed = urlparse(body.url)
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=422, detail="Target URL must use http or https scheme")
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     tags_json = json.dumps(body.tags) if body.tags else None
     crawl_depth = body.crawl_depth if body.crawl_depth is not None else 0
