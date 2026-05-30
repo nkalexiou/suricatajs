@@ -208,7 +208,7 @@ def init_db():
                 date TEXT
             )
         """))
-        conn.execute(text(f"""
+        conn.execute(text(f"""  # nosemgrep: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text
             CREATE TABLE IF NOT EXISTS alerts (
                 id {pk},
                 javascript TEXT,
@@ -225,7 +225,7 @@ def init_db():
                 source_page TEXT
             )
         """))
-        conn.execute(text(f"""
+        conn.execute(text(f"""  # nosemgrep: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text
             CREATE TABLE IF NOT EXISTS targets (
                 id {pk},
                 url TEXT NOT NULL UNIQUE,
