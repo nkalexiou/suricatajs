@@ -1,0 +1,41 @@
+name: Container scan (Grype)
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  grype:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t suricatajs:ci .
+
+      - name: Scan with Grype
+        id: scan
+        uses: anchore/scan-action@v7
+        with:
+          image: suricatajs:ci
+          fail-build: true
+          severity-cutoff: critical
+          output-format: sarif
+
+      - name: Upload SARIF to Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}

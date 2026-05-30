@@ -1,30 +1,58 @@
 name: Dynamic analysis (DAST)
-permissions:
-  contents: read
+
+# Dastardly scans the publicly accessible surface only (no auth support).
+# Authenticated endpoints require the paid Burp Suite DAST product.
+
 on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  checks: write
+
 jobs:
-  Dynamic-Analysis:
+  dastardly:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: master
-      
-      - name: Install Docker Compose
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t suricatajs:dast .
+
+      - name: Start app
         run: |
-          sudo apt-get update
-          sudo apt-get install docker-compose -y
-          
-      - name: Start containers
-        run: docker-compose up -d --build
-        
-      - name: DAST scan
-        uses: projectdiscovery/nuclei-action@v2.0.1
+          docker run -d --name suricatajs \
+            -e JWT_SECRET=ci-dummy-secret \
+            -e API_KEYS=ci-key \
+            -p 8085:8085 \
+            suricatajs:dast
+
+      - name: Wait for app to be ready
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8085/health && break
+            sleep 2
+          done
+
+      - name: Dastardly scan
+        uses: PortSwigger/dastardly-github-action@main
         with:
-          target: http://localhost:8085
-      - name: Stop suricatajs
-        run: docker-compose down
-          
+          target-url: http://localhost:8085
+
+      - name: Stop app
+        if: always()
+        run: docker rm -f suricatajs
+
+      - name: Publish results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Dastardly Results
+          path: dastardly-report.xml
+          reporter: java-junit
