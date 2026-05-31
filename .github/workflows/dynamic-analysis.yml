@@ -42,7 +42,8 @@ jobs:
       - name: Dastardly scan
         uses: PortSwigger/dastardly-github-action@main
         with:
-          target-url: http://localhost:8085
+          target-url: http://host.docker.internal:8085
+          extra-docker-args: '--add-host=host.docker.internal:host-gateway'
 
       - name: Stop app
         if: always()
