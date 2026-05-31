@@ -54,7 +54,7 @@ def list_targets(domain_id: Optional[int] = Query(None)):
 @router.post("", response_model=TargetResponse, status_code=201)
 def create_target(body: TargetCreate, background_tasks: BackgroundTasks, request: Request):
     parsed = urlparse(body.url)
-    if parsed.scheme not in ("http", "https"):
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
         raise HTTPException(status_code=422, detail="Target URL must use http or https scheme")
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     tags_json = json.dumps(body.tags) if body.tags else None
