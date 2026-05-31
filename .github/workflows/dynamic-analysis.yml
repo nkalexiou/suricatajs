@@ -39,11 +39,16 @@ jobs:
             sleep 2
           done
 
+      - name: Get host IP for Dastardly
+        id: hostip
+        run: |
+          IP=$(docker network inspect bridge --format='{{range .IPAM.Config}}{{.Gateway}}{{end}}')
+          echo "ip=$IP" >> $GITHUB_OUTPUT
+
       - name: Dastardly scan
         uses: PortSwigger/dastardly-github-action@main
         with:
-          target-url: http://host.docker.internal:8085
-          extra-docker-args: '--add-host=host.docker.internal:host-gateway'
+          target-url: http://${{ steps.hostip.outputs.ip }}:8085
 
       - name: Stop app
         if: always()
