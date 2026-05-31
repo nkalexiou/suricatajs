@@ -6,7 +6,7 @@ import datetime
 import difflib
 import hashlib
 import logging
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -20,6 +20,12 @@ from scanner.discovery import discover_urls
 from scanner.playwright_scanner import get_page_scripts
 
 logger = logging.getLogger("suricatajs")
+
+
+def _assert_safe_url(url: str) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise ValueError(f"Refusing to fetch unsafe URL: {url!r}")
 
 
 def _compute_sri(content: str) -> str:
@@ -39,6 +45,7 @@ def _compute_diff(old_js: str, new_js: str) -> str:
 
 def _scan_external_script(script_url: str, page_url: str):
     logger.info(f"Processing {script_url}")
+    _assert_safe_url(script_url)
     jssource = requests.get(script_url, timeout=30).text
     suricata_js = SuricataJSObject(script_url, jssource)
     is_match, stored_checksum = suricata_js.compare_with_db()
@@ -92,6 +99,7 @@ def _scan_inline_script(page_url: str, content: str):
 
 def _scan_page_with_requests(page_url: str):
     try:
+        _assert_safe_url(page_url)
         html_resp = requests.get(page_url, timeout=30).text
         soup = BeautifulSoup(html_resp, features="lxml")
         for script in soup.find_all("script"):

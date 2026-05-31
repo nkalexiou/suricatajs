@@ -1,4 +1,6 @@
 import logging
+from urllib.parse import urlparse
+
 from playwright.sync_api import sync_playwright
 
 logger = logging.getLogger("suricatajs")
@@ -9,6 +11,10 @@ def get_page_scripts(url: str) -> dict:
     Load url in headless Chromium and extract all script src URLs and inline script content.
     Returns {"external": [url, ...], "inline": [content, ...]}.
     """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise ValueError(f"Refusing to navigate to unsafe URL: {url!r}")
+
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
         try:

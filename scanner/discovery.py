@@ -25,6 +25,9 @@ def discover_urls(seed_url: str, max_depth: int) -> list:
         visited.add(url)
 
         try:
+            parsed_check = urlparse(url)
+            if parsed_check.scheme not in ("http", "https") or not parsed_check.netloc:
+                continue
             resp = requests.get(url, timeout=15)
             soup = BeautifulSoup(resp.text, features="lxml")
             result.append(url)

@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from urllib.parse import urlparse
 
 import requests
 
@@ -13,6 +14,10 @@ def deliver_webhook(payload: dict) -> None:
     """POST payload to WEBHOOK_URL. Retries up to 3 times with exponential backoff. No-ops if WEBHOOK_URL is unset."""
     url = os.getenv("WEBHOOK_URL", "").strip()
     if not url:
+        return
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        logger.error("WEBHOOK_URL is not a valid http/https URL — skipping delivery")
         return
 
     for attempt in range(_MAX_ATTEMPTS):
