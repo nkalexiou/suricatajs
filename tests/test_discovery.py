@@ -22,10 +22,7 @@ def test_discover_same_domain_only():
         mock_get.return_value = MagicMock(text=html, status_code=200)
         result = discover_urls("https://example.com/", max_depth=1)
     urls = set(result)
-    assert "https://example.com/" in urls
-    assert "https://example.com/about" in urls
-    assert "https://example.com/shop" in urls
-    assert "https://external.com/evil" not in urls
+    assert urls == {"https://example.com/", "https://example.com/about", "https://example.com/shop"}
 
 
 def test_discover_max_depth_limits_crawl():
@@ -49,10 +46,7 @@ def test_discover_max_depth_limits_crawl():
         result = discover_urls("https://example.com/", max_depth=2)
 
     urls = set(result)
-    assert "https://example.com/" in urls
-    assert "https://example.com/page2" in urls
-    assert "https://example.com/page3" in urls
-    assert "https://example.com/page4" not in urls
+    assert urls == {"https://example.com/", "https://example.com/page2", "https://example.com/page3"}
 
 
 def test_discover_no_duplicates():
@@ -91,5 +85,4 @@ def test_discover_handles_request_error_on_subpage():
         result = discover_urls("https://example.com/", max_depth=2)
 
     urls = set(result)
-    assert "https://example.com/" in urls
-    assert "https://example.com/page3" in urls
+    assert {"https://example.com/", "https://example.com/page3"}.issubset(urls)

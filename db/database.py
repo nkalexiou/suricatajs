@@ -189,11 +189,11 @@ def _bootstrap_admin():
              "hash": password_hash, "role": "admin", "created_at": now},
         )
     border = "=" * 60
-    logger.warning(border)
-    logger.warning(f"Admin password (one-time): {password}")
-    logger.warning("Login: http://localhost:8085  |  user: admin@localhost")
-    logger.warning("Change this password under Profile after first login.")
-    logger.warning(border)
+    print(border)
+    print(f"Admin password (one-time): {password}")
+    print("Login: http://localhost:8085  |  user: admin@localhost")
+    print("Change this password under Profile after first login.")
+    print(border)
 
 
 def init_db():
