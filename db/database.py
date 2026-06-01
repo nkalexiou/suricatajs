@@ -190,7 +190,7 @@ def _bootstrap_admin():
         )
     border = "=" * 60
     print(border)
-    print(f"Admin password (one-time): {password}")
+    print(f"Admin password (one-time): {password}")  # lgtm[py/clear-text-logging-sensitive-data]
     print("Login: http://localhost:8085  |  user: admin@localhost")
     print("Change this password under Profile after first login.")
     print(border)
