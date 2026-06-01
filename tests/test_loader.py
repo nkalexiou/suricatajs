@@ -38,8 +38,7 @@ def test_load_targets_from_txt_file(fresh_db):
         from scanner.loader import load_targets
         targets = load_targets(path)
         urls = {t["url"] for t in targets}
-        assert "https://site-a.com" in urls
-        assert "https://site-b.com" in urls
+        assert urls == {"https://site-a.com", "https://site-b.com"}
         assert len(targets) == 2
     finally:
         os.unlink(path)
@@ -82,8 +81,7 @@ def test_load_targets_db_takes_priority_over_file(fresh_db):
         from scanner.loader import load_targets
         targets = load_targets(path)
         urls = {t["url"] for t in targets}
-        assert "https://db.example.com" in urls
-        assert "https://file.example.com" not in urls
+        assert urls == {"https://db.example.com"}
     finally:
         os.unlink(path)
 
