@@ -25,7 +25,7 @@ bcrypt==5.0.0
 # API
 fastapi==0.136.3
 uvicorn[standard]==0.48.0
-pydantic==2.10.3
+pydantic==2.13.4
 prometheus-client==0.25.0
 
 # Database
