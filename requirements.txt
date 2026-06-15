@@ -33,6 +33,6 @@ sqlalchemy==2.0.51
 psycopg2-binary==2.9.12
 
 # Test
-pytest==9.0.3
+pytest==9.1.0
 pytest-asyncio==1.4.0
 httpx==0.28.1
