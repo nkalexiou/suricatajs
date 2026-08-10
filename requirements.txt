@@ -10,7 +10,7 @@ itsdangerous==2.2.0
 Jinja2==3.1.6
 lxml==6.1.1
 requests==2.34.2
-soupsieve==2.9.1
+soupsieve==2.9.2
 urllib3==2.7.0
 
 # Scanner
