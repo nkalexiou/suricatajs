@@ -30,7 +30,7 @@ prometheus-client==0.26.0
 
 # Database
 sqlalchemy==2.0.52
-psycopg2-binary==2.9.12
+psycopg2-binary==2.9.13
 
 # Test
 pytest==9.1.1
