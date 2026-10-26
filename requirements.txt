@@ -29,7 +29,7 @@ pydantic==2.14.1
 prometheus-client==0.26.0
 
 # Database
-sqlalchemy==2.1.5
+sqlalchemy==2.1.6
 psycopg2-binary==2.9.13
 
 # Test
