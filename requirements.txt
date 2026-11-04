@@ -34,5 +34,5 @@ psycopg2-binary==2.9.13
 
 # Test
 pytest==9.2.0
-pytest-asyncio==1.4.1
+pytest-asyncio==1.4.1.post1
 httpx==0.28.1
