@@ -15,7 +15,7 @@ urllib3==2.8.0
 
 # Scanner
 apscheduler==3.11.3
-pyyaml==6.0.3
+pyyaml==6.0.4
 playwright==1.65.1
 
 # Auth
